@@ -1096,6 +1096,16 @@ object which can be processed by *write.csv*.
 write.csv(as.data.frame(res), file="results.csv")
 ```
 
+## Detecting hidden batches or unwanted variation
+
+```{r}
+dat <- counts(dds)[rowMeans(counts(dds)) > 1,]
+mod <- model.matrix(~ dex, colData(dds))
+mod0 <- model.matrix(~ 1, colData(dds))
+svseq <- svaseq(m,mm1,mm0,n.sv=3)
+svseq$sv
+```
+
 ## Session information
 
 As last part of this document, we call the function *sessionInfo*,
