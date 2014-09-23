@@ -1,3 +1,5 @@
+<!-- rmarkdown v1 -->
+
 # RNA-Seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2], Wolfgang Huber [2]
@@ -18,7 +20,12 @@ Bioconductor packages.  We will start from the FASTQ files, show how
 these were aligned to the reference genome, prepare gene expression
 values as a count matrix by counting the sequenced fragments, perform
 exploratory data analysis (EDA), perform differential gene expression
-analysis, and visually explore the results.
+analysis with *DESeq2*, and visually explore the results.
+
+We note that a number of other Bioconductor packages can also be used for
+statistical inference of differential expression at the gene level including
+`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`, `r Biocpkg("DSS")` and
+`r Biocpkg("limma")`.
 
 ## Experimental data
 
@@ -72,7 +79,7 @@ file format called [SAM/BAM](http://samtools.github.io/hts-specs).
 
 A number of software programs exist to align reads to the reference
 genome, and the development is too rapid for this document to provide
-a current list. We recommend consulting benchmarking papers that
+an up-to-date list. We recommend consulting benchmarking papers that
 discuss the advantages and disadvantages of each software, which
 include accuracy, ability to align reads over splice junctions, speed,
 memory footprint, and many other features.
@@ -137,7 +144,7 @@ line are used to print the result in addition to storing it to the
 `sampleTable` object.
 
 ```{r}
-csvfile <- paste0(dir,"/sample_table.csv")
+csvfile <- file.path(dir,"sample_table.csv")
 (sampleTable <- read.csv(csvfile,row.names=1))
 ```
 
@@ -161,7 +168,7 @@ Using the `Run` column in the sample table, we construct the full
 paths to the files we want to perform the counting operation on:
 
 ```{r}
-filenames <- paste0(dir,"/",sampleTable$Run, "_subset.bam")
+filenames <- file.path(dir,paste0(sampleTable$Run, "_subset.bam"))
 ```
 
 We indicate in Bioconductor that these files are BAM files using the
@@ -202,7 +209,7 @@ pull a gene model from Biomart.
 
 ```{r}
 library("GenomicFeatures")
-gtffile <- paste0(dir,"/Homo_sapiens.GRCh37.75_subset.gtf")
+gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
 (txdb <- makeTranscriptDbFromGFF(gtffile, format="gtf"))
 ```
 
@@ -219,7 +226,7 @@ object, which contains a variety of information about
 an experiment, and will be described in more detail below.
 
 **Note:** If it is desired to perform counting using multiple cores, one can use
-the `register` and `MulticoreParam` functions from the
+the *register* and *MulticoreParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
 
 ```{r}
@@ -294,8 +301,8 @@ of the gene model in the `metadata` slot.
 str(metadata(rowData(se)))
 ```
 
-The `colData` slot, so far empty, should contain all the meta
-data. We hence assign our sample table to it:
+The `colData` slot, so far empty, should contain all the metadata.
+We hence assign our sample table to it:
 
 ```{r}
 (colData(se) <- DataFrame(sampleTable))
@@ -307,12 +314,12 @@ object which is used in *DESeq2*, either using the
 *SummarizedExperiment*, or in general, a count matrix which has been
 loaded into R.
 
-## The DESeqDataSet, column metadata, and the design formula
+## The *DESeqDataSet*, column metadata, and the design formula
 
 Bioconductor software packages often have a special class of data
 object, which contains special slots and requirements. The data object
 class in *DESeq2* is the *DESeqDataSet*, which is built on top of the
-*SummarizedExperiment* class.  One main differences is that the
+*SummarizedExperiment* class.  One of the main differences is that the
 `assay` slot is instead accessed using the *count* accessor, and the
 values in this matrix must be non-negative integers.
 
@@ -349,15 +356,15 @@ In the following sections, we will demonstrate the construction of the
 
 * from a *SummarizedExperiment* object created by, e.g.,
   *summarizeOverlaps* in the above example
-* more generally, from a count matrix (i.e. matrix) and a column
-metadata table which have been loaded into R
+* more generally, from a count matrix and a column metadata table
+  which have been loaded into R 
 
-For a full example of using the HTSeq Python package for read
-counting, please see the `r Biocexptpkg("pasilla")`.  For an example
-of generating the *DESeqDataSet* from files produced by *htseq-count*,
-please see the `r Biocpkg("DESeq2")` vignette.
+For a full example of using the *HTSeq* Python package for read
+counting, please see the `r Biocexptpkg("pasilla")` vignette.  For an
+example of generating the *DESeqDataSet* from files produced by
+*htseq-count*, please see the `r Biocpkg("DESeq2")` vignette.
 
-### Starting from SummarizedExperiment
+### Starting from *SummarizedExperiment*
 
 We now use R's *data* command to load a prepared
 *SummarizedExperiment* that was generated from the publicly available
@@ -477,7 +484,7 @@ metadata table, we use:
 We will continue with the object generated from the
 *SummarizedExperiment* section. 
 
-## Visualing exploring the dataset
+## Visually exploring the dataset
 
 ### The rlog transformation
 
@@ -488,14 +495,15 @@ best for (at least approximately) homoskedastic data; this means that
 the variance of an observable quantity (i.e., here, the expression
 strength of a gene) does not depend on the mean. In RNA-Seq data,
 however, variance grows with the mean. For example, if one performs
-PCA directly on a matrix of normalized read counts, the result
-typically depends only on the few most strongly expressed genes
-because they show the largest absolute differences between samples. A
-simple and often used strategy to avoid this is to take the logarithm
-of the normalized count values plus a small pseudocount; however, now
-the genes with low counts tend to dominate the results because, due to
-the strong Poisson noise inherent to small count values, they show the
-strongest relative differences between samples.
+PCA (principal components analysis) directly on a matrix of normalized
+read counts, the result typically depends only on the few most
+strongly expressed genes because they show the largest absolute
+differences between samples. A simple and often used strategy to avoid
+this is to take the logarithm of the normalized count values plus a
+small pseudocount; however, now the genes with low counts tend to
+dominate the results because, due to the strong Poisson noise inherent
+to small count values, they show the strongest relative differences
+between samples.
 
 As a solution, *DESeq2* offers the *regularized-logarithm transformation*,
 or *rlog* for short. For genes with high counts, the rlog
@@ -603,7 +611,7 @@ plotPCA( rld, intgroup = c( "dex", "cell" ) )
 ```
 
 Here, we have used the function *plotPCA* which comes with *DESeq2*.
-The two terms specified as *intgroup* are the interesting groups for
+The two terms specified by `intgroup` are the interesting groups for
 labelling the samples; they tell the function to use them to choose
 colors. We can also build the PCA plot from scratch using
 `r CRANpkg("ggplot2")`. This is done by asking the *plotPCA* function
@@ -1112,9 +1120,9 @@ As last part of this document, we call the function *sessionInfo*,
 which reports the version numbers of R and all the packages used in
 this session. It is good practice to always keep such a record as it
 will help to trace down what has happened in case that an R script
-ceases to work because a package has been changed in a newer
-version. The session information should also **always** be included in any
-emails to the
+ceases to work because the functions have been changed in a newer
+version of a package. The session information should also **always**
+be included in any emails to the
 [Bioconductor support site](https://support.bioconductor.org) along
 with all code used in the analysis.
 
