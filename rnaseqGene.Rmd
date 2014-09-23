@@ -116,7 +116,7 @@ table.
 
 We load the data package with the example data:
 
-```{r results="hide"}
+```{r message=FALSE}
 library("airway")
 ```
 
@@ -175,7 +175,7 @@ We indicate in Bioconductor that these files are BAM files using the
 *BamFileList* function. Here we also specify details about how the BAM files should
 be treated, e.g., only process 2000000 reads at a time.
 
-```{r}
+```{r message=FALSE}
 library("Rsamtools")
 bamfiles <- BamFileList(filenames, yieldSize=2000000)
 ```
@@ -207,8 +207,11 @@ one can use the pre-built Transcript DataBase:
 The *makeTranscriptDbFromBiomart* function can be used to automatically
 pull a gene model from Biomart. 
 
-```{r}
+```{r message=FALSE}
 library("GenomicFeatures")
+```
+
+```{r}
 gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
 (txdb <- makeTranscriptDbFromGFF(gtffile, format="gtf"))
 ```
@@ -229,8 +232,11 @@ an experiment, and will be described in more detail below.
 the *register* and *MulticoreParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
 
-```{r}
+```{r message=FALSE}
 library("GenomicAlignments")
+```
+
+```{r}
 se <- summarizeOverlaps(features=genes, reads=bamfiles,
                         mode="Union",
                         singleEnd=FALSE,
@@ -415,8 +421,11 @@ we can construct a *DESeqDataSet* object from it, which will then form
 the starting point of the actual *DESeq2* package, described in the
 following sections. We add an appropriate design for the analysis.
 
-```{r}
+```{r message=FALSE}
 library("DESeq2")
+```
+
+```{r}
 dds <- DESeqDataSet(se, design = ~ cell + dex)
 ```
 
@@ -581,12 +590,15 @@ our samples constitute the columns.
 We visualize the distances in a heatmap, using the function
 *heatmap.2* from the `r CRANpkg("gplots")` package.
 
+```{r message=FALSE}
+library("gplots")
+library("RColorBrewer")
+```
+
 ```{r distheatmap, fig.width=7, fig.height=6}
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- paste( rld$dex, rld$cell, sep="-" )
 colnames(sampleDistMatrix) <- NULL
-library("gplots")
-library("RColorBrewer")
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 heatmap.2( sampleDistMatrix, trace="none", col=colors, margins=c(5,10) )
 ```
@@ -607,7 +619,7 @@ total variance which is contained in the direction is printed in the
 axis label.
 
 ```{r plotpca, fig.width=6, fig.height=4.5}
-plotPCA( rld, intgroup = c( "dex", "cell" ) )
+plotPCA(rld, intgroup = c("dex", "cell"))
 ```
 
 Here, we have used the function *plotPCA* which comes with *DESeq2*.
@@ -618,7 +630,7 @@ colors. We can also build the PCA plot from scratch using
 to return the data used for plotting rather than building the plot.
 
 ```{r}
-(data <- plotPCA( rld, intgroup = c( "dex", "cell"), returnData=TRUE))
+(data <- plotPCA(rld, intgroup = c( "dex", "cell"), returnData=TRUE))
 percentVar <- round(100 * attr(data, "percentVar"))
 ```
 
@@ -626,8 +638,11 @@ We can then use this data to build up the plot, specifying that the
 color of the points should reflect dexamethasone treatment and the
 shape should reflect the cell line.
 
-```{r ggplotpca, fig.width=6, fig.height=4.5}
+```{r message=FALSE}
 library("ggplot2")
+```
+
+```{r ggplotpca, fig.width=6, fig.height=4.5}
 ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) +
   geom_point(size=4) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
@@ -857,10 +872,10 @@ plotCounts(dds, gene=topGene, intgroup=c("dex"))
 
 Note that the *DESeq* test actually takes into account the cell line
 effect, so a more detailed plot would also show the cell lines. An
-example of building up such a plot with the *ggplot* function:
+example of building up such a plot with the *ggplot* function from the
+`r CRANpkg("ggplot2")` package:
 
 ```{r ggplotcounts, fig.height=5}
-library("ggplot2")
 data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
 ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
   geom_point() + geom_line()
@@ -948,7 +963,7 @@ for demonstration, let us select the 35 genes with the highest
 variance across samples. We will work with the *rlog* transformed
 counts:
 
-```{r}
+```{r message=FALSE}
 library("genefilter")
 topVarGenes <- head(order(-rowVars(assay(rld))),35)
 ```
@@ -1043,7 +1058,7 @@ various ID schemes to each other.
 We load the `r Biocpkg("AnnotationDbi")` package and the annotation package
 `r Biocannopkg("org.Hs.eg.db")`:
 
-```{r}
+```{r message=FALSE}
 library("AnnotationDbi")
 library("org.Hs.eg.db")
 ```
@@ -1106,12 +1121,24 @@ write.csv(as.data.frame(res), file="results.csv")
 
 ## Detecting hidden batches or unwanted variation
 
+```{r message=FALSE}
+library("sva")
+```
+
 ```{r}
 dat <- counts(dds)[rowMeans(counts(dds)) > 1,]
 mod <- model.matrix(~ dex, colData(dds))
 mod0 <- model.matrix(~ 1, colData(dds))
-svseq <- svaseq(m,mm1,mm0,n.sv=3)
+svseq <- svaseq(dat,mod,mod0,n.sv=2)
 svseq$sv
+```
+
+```{r}
+par(mfrow=c(2,1),mar=c(5,5,1,1))
+stripchart(svseq$sv[,1] ~ dds$cell,vertical=TRUE)
+abline(h=0)
+stripchart(svseq$sv[,2] ~ dds$cell,vertical=TRUE)
+abline(h=0)
 ```
 
 ## Session information
