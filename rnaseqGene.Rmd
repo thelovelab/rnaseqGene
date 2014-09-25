@@ -747,12 +747,12 @@ column `pvalue`. (Remember that a *p* value indicates the probability
 that a fold change as strong as the observed one, or even stronger,
 would be seen under the situation described by the null hypothesis.)
 
-We can also summarize the results with the following call, which
-reports some additional information, which will be covered in later
-sections. 
+We can also summarize the results with the following line of code,
+which reports some additional information, which will be covered in
+later sections.
 
 ```{r}
-summarizeResults(res)
+summary(res)
 ```
 
 Note that there are many genes with differential expression due to
