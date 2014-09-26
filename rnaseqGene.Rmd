@@ -1119,19 +1119,34 @@ object which can be processed by *write.csv*.
 write.csv(as.data.frame(res), file="results.csv")
 ```
 
-## Detecting hidden batches or unwanted variation
+## Detecting hidden batches or other unwanted variation
+
+Suppose we did not know that there were different cell lines involved
+in the experiment, only that there was treatment with
+dexamethasone. The cell line effect on the counts then would represent
+some hidden and unwanted variation which might be affecting
+many or all of the genes in the dataset. We can use statistical
+methods from the `r Biockg("sva")` or `r Biocpkg("RUVSeq")` package to
+detect such groupings of the samples, and then we can add these to the
+*DESeqDataSet*'s design, in order to account for them. The SVA
+software uses the term *surrogate variables* and the RUV software uses
+the term *factors or unwanted variation*. We first show the use of SVA:
 
 ```{r message=FALSE}
 library("sva")
 ```
 
 ```{r}
-dat <- counts(dds)[rowMeans(counts(dds)) > 1,]
+idx <- rowMeans(counts(dds)) > 1
+dat <- counts(dds)[idx,]
 mod <- model.matrix(~ dex, colData(dds))
 mod0 <- model.matrix(~ 1, colData(dds))
 svseq <- svaseq(dat,mod,mod0,n.sv=2)
 svseq$sv
 ```
+
+Because we actually do know the cell lines, we can see how well the
+SVA method did at recovering these variables: 
 
 ```{r}
 par(mfrow=c(2,1),mar=c(5,5,1,1))
@@ -1139,6 +1154,56 @@ stripchart(svseq$sv[,1] ~ dds$cell,vertical=TRUE)
 abline(h=0)
 stripchart(svseq$sv[,2] ~ dds$cell,vertical=TRUE)
 abline(h=0)
+```
+
+```{r}
+ddssva <- dds
+ddssva$SV1 <- svseq$sv[,1]
+ddssva$SV2 <- svseq$sv[,2]
+design(ddssva) <- ~ SV1 + SV2 + dex
+ddssva <- DESeq(ddssva)
+head(results(ddssva), 4)
+```
+
+```{r message=FALSE}
+library("RUVSeq")
+```
+
+```{r}
+ddsruv <- dds
+design(ddsruv) <- ~ dex
+ddsruv <- DESeq(ddsruv)
+idx <- rowMeans(counts(ddsruv)) > 1
+object <- list(counts = counts(ddsruv)[idx,],
+               fitted.values = assays(ddsruv)[["mu"]][idx,],
+               dispersion = dispersions(ddsruv)[idx])
+object <- new("DGEGLM", object)
+resid <- residuals(object)
+```
+
+```{r}
+set <- newSeqExpressionSet(object$counts)
+genes <- rownames(object$counts)
+ruv <- RUVr(set, genes, k=2, resid)
+```
+
+As before we can compare how well the RUV factors match the known cell 
+line information:
+
+```{r}
+par(mfrow=c(2,1),mar=c(5,5,1,1))
+stripchart(pData(ruv)[,1] ~ dds$cell,vertical=TRUE)
+abline(h=0)
+stripchart(pData(ruv)[,2] ~ dds$cell,vertical=TRUE)
+abline(h=0)
+```
+
+```{r}
+ddsruv$W1 <- pData(ruv)[,1]
+ddsruv$W2 <- pData(ruv)[,2]
+design(ddsruv) <- ~ W1 + W2 + dex
+ddsruv <- DESeq(ddsruv)
+head(results(ddsruv),4)
 ```
 
 ## Session information
