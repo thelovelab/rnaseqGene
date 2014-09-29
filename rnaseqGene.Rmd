@@ -12,6 +12,7 @@ Harvard School of Public Health, Boston, US;
 ```{r style, echo=FALSE, results="asis"}
 BiocStyle::markdown()
 options(width=100)
+opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE) ## matter of taste but wh likes these better
 ```
 
 This lab will walk you through an end-to-end RNA-Seq differential
