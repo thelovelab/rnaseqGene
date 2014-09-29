@@ -314,11 +314,17 @@ We hence assign our sample table to it:
 (colData(se) <- DataFrame(sampleTable))
 ```
 
-This *SummarizedExperiment* object is then all we need to start our
-analysis. In the following section we will show how to create the data
-object which is used in *DESeq2*, either using the
-*SummarizedExperiment*, or in general, a count matrix which has been
-loaded into R.
+At this point, we have counted the reads which overlap the genes in
+the gene model we specified. This is a branching point where we could
+use a variety of Bioconductor packages for exploration and
+differential expression of the counts, including
+`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`,
+`r Biocpkg("DSS")` and `r Biocpkg("limma")`.
+We will continue, using *DESeq2*. The *SummarizedExperiment* object is
+all we need to start our analysis. In the following section we will
+show how to create the data object which is used in *DESeq2*, either
+using the *SummarizedExperiment*, or in general, a count matrix which
+has been loaded into R.
 
 ## The *DESeqDataSet*, column metadata, and the design formula
 
@@ -1107,16 +1113,44 @@ Now the results have the desired external gene ids:
 ```{r}
 head(res[order(res$pvalue),])
 ```
+
 ## Exporting results
 
-Finally, we note that you can easily save the results table in a CSV
-file, which you can then load with a spreadsheet program such as
-Excel. The call to *as.data.frame* is necessary to convert the
-*DataFrame* object (`r Biocpkg("IRanges")` package) to a *data.frame*
-object which can be processed by *write.csv*. 
+You can easily save the results table in a CSV file, which you can
+then load with a spreadsheet program such as Excel. The call to
+*as.data.frame* is necessary to convert the *DataFrame* object
+(`r Biocpkg("IRanges")` package) to a *data.frame* object which can be
+processed by *write.csv*.
 
 ```{r eval=FALSE}
 write.csv(as.data.frame(res), file="results.csv")
+```
+
+## Plotting fold changes in genomic space
+
+```{r}
+(resGR <- results(dds, format="GRanges"))
+resGR$symbol <- convertIDs(names(resGR), "ENSEMBL", "SYMBOL", org.Hs.eg.db)
+```
+
+```{r message=FALSE}
+library("Gviz")
+```
+
+```{r}
+options(ucscChromosomeNames=FALSE)
+window <- resGR[topGene] + 1e6
+strand(window) <- "*"
+hasLFC <- !is.na(resGR$log2FoldChange)
+resGRsub <- resGR[resGR %over% window & hasLFC]
+naOrDup <- is.na(resGRsub$symbol) | duplicated(resGRsub$symbol)
+resGRsub$group <- ifelse(naOrDup, names(resGRsub), resGRsub$symbol)
+sig <- factor(ifelse(is.na(resGRsub$padj) | resGRsub$padj > .1,"notsig","sig"))
+g <- GenomeAxisTrack()
+a <- AnnotationTrack(resGRsub, name="gene ranges", feature=sig)
+d <- DataTrack(resGRsub, data="log2FoldChange", baseline=0,
+               type="h", name="log2 fold change", strand="+")
+plotTracks(list(g,d,a), groupAnnotation="group", notsig="lightblue", sig="pink")
 ```
 
 ## Detecting hidden batches or other unwanted variation
@@ -1126,7 +1160,7 @@ in the experiment, only that there was treatment with
 dexamethasone. The cell line effect on the counts then would represent
 some hidden and unwanted variation which might be affecting
 many or all of the genes in the dataset. We can use statistical
-methods from the `r Biockg("sva")` or `r Biocpkg("RUVSeq")` package to
+methods from the `r Biocpkg("sva")` or `r Biocpkg("RUVSeq")` package to
 detect such groupings of the samples, and then we can add these to the
 *DESeqDataSet*'s design, in order to account for them. The SVA
 software uses the term *surrogate variables* and the RUV software uses
