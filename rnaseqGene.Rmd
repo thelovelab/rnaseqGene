@@ -117,7 +117,7 @@ table.
 
 We load the data package with the example data:
 
-```{r message=FALSE}
+```{r}
 library("airway")
 ```
 
@@ -176,7 +176,7 @@ We indicate in Bioconductor that these files are BAM files using the
 *BamFileList* function. Here we also specify details about how the BAM files should
 be treated, e.g., only process 2000000 reads at a time.
 
-```{r message=FALSE}
+```{r}
 library("Rsamtools")
 bamfiles <- BamFileList(filenames, yieldSize=2000000)
 ```
@@ -208,7 +208,7 @@ one can use the pre-built Transcript DataBase:
 The *makeTranscriptDbFromBiomart* function can be used to automatically
 pull a gene model from Biomart. 
 
-```{r message=FALSE}
+```{r}
 library("GenomicFeatures")
 ```
 
@@ -233,7 +233,7 @@ an experiment, and will be described in more detail below.
 the *register* and *MulticoreParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
 
-```{r message=FALSE}
+```{r}
 library("GenomicAlignments")
 ```
 
@@ -428,7 +428,7 @@ we can construct a *DESeqDataSet* object from it, which will then form
 the starting point of the actual *DESeq2* package, described in the
 following sections. We add an appropriate design for the analysis.
 
-```{r message=FALSE}
+```{r}
 library("DESeq2")
 ```
 
@@ -597,7 +597,7 @@ our samples constitute the columns.
 We visualize the distances in a heatmap, using the function
 *heatmap.2* from the `r CRANpkg("gplots")` package.
 
-```{r message=FALSE}
+```{r}
 library("gplots")
 library("RColorBrewer")
 ```
@@ -645,7 +645,7 @@ We can then use this data to build up the plot, specifying that the
 color of the points should reflect dexamethasone treatment and the
 shape should reflect the cell line.
 
-```{r message=FALSE}
+```{r}
 library("ggplot2")
 ```
 
@@ -970,7 +970,7 @@ for demonstration, let us select the 35 genes with the highest
 variance across samples. We will work with the *rlog* transformed
 counts:
 
-```{r message=FALSE}
+```{r}
 library("genefilter")
 topVarGenes <- head(order(-rowVars(assay(rld))),35)
 ```
@@ -983,12 +983,12 @@ and plot a heatmap. We provide the column side colors to help identify
 the treated samples (in blue) from the untreated samples (in grey).
 
 ```{r genescluster, fig.height=9}
-cols <- colorRampPalette( rev(brewer.pal(9, "PuOr")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "PuOr")) )(255)
 sidecols <- c("grey","dodgerblue")[ rld$dex ]
 mat <- assay(rld)[ topVarGenes, ]
 mat <- mat - rowMeans(mat)
 colnames(mat) <- paste0(rld$dex,"-",rld$cell)
-heatmap.2(mat, trace="none", col=cols, ColSideColors=sidecols,
+heatmap.2(mat, trace="none", col=colors, ColSideColors=sidecols,
           labRow=FALSE, mar=c(10,2), scale="row")
 ```
 
@@ -1065,7 +1065,7 @@ various ID schemes to each other.
 We load the `r Biocpkg("AnnotationDbi")` package and the annotation package
 `r Biocannopkg("org.Hs.eg.db")`:
 
-```{r message=FALSE}
+```{r}
 library("AnnotationDbi")
 library("org.Hs.eg.db")
 ```
@@ -1134,11 +1134,11 @@ write.csv(as.data.frame(res), file="results.csv")
 resGR$symbol <- convertIDs(names(resGR), "ENSEMBL", "SYMBOL", org.Hs.eg.db)
 ```
 
-```{r message=FALSE}
+```{r}
 library("Gviz")
 ```
 
-```{r}
+```{r gvizplot}
 options(ucscChromosomeNames=FALSE)
 window <- resGR[topGene] + 1e6
 strand(window) <- "*"
@@ -1167,7 +1167,7 @@ detect such groupings of the samples, and then we can add these to the
 software uses the term *surrogate variables* and the RUV software uses
 the term *factors or unwanted variation*. We first show the use of SVA:
 
-```{r message=FALSE}
+```{r}
 library("sva")
 ```
 
@@ -1183,7 +1183,7 @@ svseq$sv
 Because we actually do know the cell lines, we can see how well the
 SVA method did at recovering these variables: 
 
-```{r}
+```{r svaplot}
 par(mfrow=c(2,1),mar=c(5,5,1,1))
 stripchart(svseq$sv[,1] ~ dds$cell,vertical=TRUE)
 abline(h=0)
@@ -1200,7 +1200,7 @@ ddssva <- DESeq(ddssva)
 head(results(ddssva), 4)
 ```
 
-```{r message=FALSE}
+```{r}
 library("RUVSeq")
 ```
 
@@ -1225,7 +1225,7 @@ ruv <- RUVr(set, genes, k=2, resid)
 As before we can compare how well the RUV factors match the known cell 
 line information:
 
-```{r}
+```{r ruvplot}
 par(mfrow=c(2,1),mar=c(5,5,1,1))
 stripchart(pData(ruv)[,1] ~ dds$cell,vertical=TRUE)
 abline(h=0)
@@ -1239,6 +1239,68 @@ ddsruv$W2 <- pData(ruv)[,2]
 design(ddsruv) <- ~ W1 + W2 + dex
 ddsruv <- DESeq(ddsruv)
 head(results(ddsruv),4)
+```
+
+## Time-series experiments
+
+Here we demontrate with the `r Biocexptpkg("fission")` data package,
+which contains gene counts for an RNA-Seq time course of fission
+yeast. The yeast were exposed to oxidative stress, and half of the
+samples contain a deletion of the gene *atf21*.
+
+```{r}
+library("fission")
+data("fission")
+ddsTC <- DESeqDataSet(fission, ~ strain + minute + strain:minute)
+```
+
+The following chunk performs a likelihood ratio test.
+
+```{r}
+ddsTC <- DESeq(ddsTC, test="LRT", reduced = ~ strain + minute)
+resTC <- results(ddsTC)
+resTC$symbol <- mcols(ddsTC)$symbol
+head(resTC[order(resTC$pvalue),],4)
+```
+
+We can plot the counts for the groups over time using
+`r CRANpkg("ggplot2")`, for the gene with the smallest *p* value,
+testing for condition-dependent time profile and accounting for
+differences at time 0. Keep in mind that the interaction terms are the
+difference between the two groups at a given time after accounting for
+the difference at time 0.
+
+```{r fissioncounts}
+data <- plotCounts(ddsTC, which.min(resTC$pvalue), 
+                   intgroup=c("minute","strain"), returnData=TRUE)
+ggplot(data, aes(x=minute, y=count, color=strain, group=strain)) + 
+  geom_point() + stat_smooth(se=FALSE,method="loess") +  scale_y_log10()
+```
+
+Wald tests for the log2 fold changes at individual time points can be
+investigated using the `test` argument to *results*:
+
+```{r}
+resultsNames(ddsTC)
+res30 <- results(ddsTC, name="strainmut.minute30", test="Wald")
+res30[which.min(resTC$pvalue),]
+```
+
+We can further more cluster significant genes by their profiles.
+
+```{r}
+betas <- coef(ddsTC)
+colnames(betas)
+```
+
+```{r}
+mat <- betas[,-c(1,2)]
+mat[mat < -5] <- -5
+mat[mat > 5] <- 5
+topGenes <- head(order(resTC$pvalue),40)
+colors <- colorRampPalette( rev(brewer.pal(9, "PuOr")) )(255)
+heatmap.2(mat[ topGenes, ], trace="none", dendrogram="row",
+          Colv=FALSE, col=colors, mar=c(12,8))
 ```
 
 ## Session information
