@@ -12,7 +12,9 @@ Harvard School of Public Health, Boston, US;
 ```{r style, echo=FALSE, results="asis"}
 BiocStyle::markdown()
 options(width=100)
-opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE) ## matter of taste but wh likes these better
+opts_chunk$set(message = FALSE, error = FALSE) ## matter of taste but wh likes these better
+## ML: I want warnings because makeTranscriptDbFromGFF gives 2 benign warnings
+## and I don't want users to be surprised.
 ```
 
 This lab will walk you through an end-to-end RNA-Seq differential
@@ -602,17 +604,41 @@ library("gplots")
 library("RColorBrewer")
 ```
 
-```{r distheatmap, fig.width=7, fig.height=6}
+```{r distheatmap, fig.width=8}
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- paste( rld$dex, rld$cell, sep="-" )
-colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-heatmap.2( sampleDistMatrix, trace="none", col=colors, margins=c(5,10) )
+heatmap.2( sampleDistMatrix, trace="none", col=colors,
+          margins=c(2,10), labCol=FALSE )
 ```
 
 Note that we have changed the row names of the distance matrix to
 contain treatment type and patient number instead of sample ID, so
 that we have all this information in view when looking at the heatmap.
+
+Another option for calculating sample distances is to use the Poisson
+Distance, implemented in the CRAN package
+`r CRANpkg("PoiClaClu")`. Similar to the transformations offered in
+*DESeq2*, this measure of dissimilarity also takes the variance
+structure of counts into consideration when calculating the distances
+between samples.  The *PoissonDistance* function takes the original
+count matrix (not normalized) with samples as rows instead of columns,
+so we need to tranpose the counts in `dds`.
+
+```{r}
+library("PoiClaClu")
+poisd <- PoissonDistance(t(counts(dds)))
+```
+
+We can plot the heatmap as before:
+
+```{r poisdistheatmap, fig.width=8}
+samplePoisDistMatrix <- as.matrix( poisd$dd )
+rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep="-" )
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+heatmap.2( samplePoisDistMatrix, trace="none", col=colors,
+          margins=c(2,10), labCol=FALSE )
+```
 
 ### PCA plot
 
@@ -650,8 +676,7 @@ library("ggplot2")
 ```
 
 ```{r ggplotpca, fig.width=6, fig.height=4.5}
-ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) +
-  geom_point(size=4) +
+qplot(PC1, PC2, color=dex, shape=cell, data=data) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 ```
@@ -665,6 +690,27 @@ untreated sample from the *same* cell line). We are already set up for
 this by using the design formula `~ cell + dex` when setting up the
 data object in the beginning.
 
+## MDS plot
+
+Another plot, very similar to the PCA plot, can be made using the 
+*multidimensional scaling* (MDS) function in base R. This is useful when we
+don't have the original data, but only a matrix of distances. Here we
+have the MDS plot for the distances calculated from the *rlog*
+transformed counts:
+
+```{r mdsrlog, fig.width=6, fig.height=4.5}
+mds <- data.frame(cmdscale(sampleDistMatrix))
+mds <- cbind(mds, colData(rld))
+qplot(X1,X2,color=dex,shape=cell,data=mds)
+```
+
+And here from the *PoissonDistance*:
+
+```{r mdspois, fig.width=6, fig.height=4.5}
+mds <- data.frame(cmdscale(samplePoisDistMatrix))
+mds <- cbind(mds, colData(dds))
+qplot(X1,X2,color=dex,shape=cell,data=mds)
+```
 
 ## Differential expression analysis
 
@@ -873,7 +919,7 @@ the *plotCounts* function, which takes as arguments the
 counts. 
 
 ```{r plotcounts}
-topGene <- rownames(res)[which.min(res$pvalue)]
+topGene <- rownames(res)[which.min(res$padj)]
 plotCounts(dds, gene=topGene, intgroup=c("dex"))
 ```
 
@@ -895,7 +941,7 @@ normalized by size factor is shown on the x-axis ("M" for minus,
 because a log ratio is equal to log minus log, and "A" for average).
 
 ```{r plotma}
-plotMA(res, ylim=c(-4,4))
+plotMA(res, ylim=c(-5,5))
 ```
 
 Each gene is represented with a dot. Genes with an adjusted $p$ value
@@ -913,7 +959,7 @@ results object. Within the *with* function, only the `baseMean` and
 `log2FoldChange` values for the selected rows of `res` are used.
 
 ```{r plotma2}
-plotMA(res, ylim=c(-4,4))
+plotMA(res, ylim=c(-5,5))
 with(res[topGene, ], {
   points(baseMean, log2FoldChange, col="dodgerblue", cex=2, lwd=2)
   text(baseMean, log2FoldChange, topGene, pos=2, col="dodgerblue")
@@ -1241,6 +1287,17 @@ ddsruv <- DESeq(ddsruv)
 head(results(ddsruv),4)
 ```
 
+Once we are finished, we detach *RUVSeq* and its dependencies
+so that we can continue to use the *plotPCA* and *plotMA* functions
+defined in *DESeq2*. 
+
+```{r}
+detach(package:RUVSeq)
+detach(package:EDASeq)
+detach(package:edgeR)
+detach(package:limma)
+```
+
 ## Time-series experiments
 
 Here we demontrate with the `r Biocexptpkg("fission")` data package,
@@ -1293,7 +1350,7 @@ betas <- coef(ddsTC)
 colnames(betas)
 ```
 
-```{r}
+```{r fissionheatmap}
 mat <- betas[,-c(1,2)]
 mat[mat < -5] <- -5
 mat[mat > 5] <- 5
