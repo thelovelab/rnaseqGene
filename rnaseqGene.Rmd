@@ -1200,18 +1200,18 @@ d <- DataTrack(resGRsub, data="log2FoldChange", baseline=0,
 plotTracks(list(g,d,a), groupAnnotation="group", notsig="lightblue", sig="pink")
 ```
 
-## Detecting hidden batches or other unwanted variation
+## Removing hidden batch effects
 
 Suppose we did not know that there were different cell lines involved
 in the experiment, only that there was treatment with
 dexamethasone. The cell line effect on the counts then would represent
 some hidden and unwanted variation which might be affecting
 many or all of the genes in the dataset. We can use statistical
-methods from the `r Biocpkg("sva")` or `r Biocpkg("RUVSeq")` package to
+methods from the `r Biocpkg("sva")` package to
 detect such groupings of the samples, and then we can add these to the
 *DESeqDataSet*'s design, in order to account for them. The SVA
-software uses the term *surrogate variables* and the RUV software uses
-the term *factors or unwanted variation*. We first show the use of SVA:
+software uses the term *surrogate variables* for the estimated
+variables which we want to account for in our analysis.
 
 ```{r}
 library("sva")
@@ -1244,58 +1244,6 @@ ddssva$SV2 <- svseq$sv[,2]
 design(ddssva) <- ~ SV1 + SV2 + dex
 ddssva <- DESeq(ddssva)
 head(results(ddssva), 4)
-```
-
-```{r}
-library("RUVSeq")
-```
-
-```{r}
-ddsruv <- dds
-design(ddsruv) <- ~ dex
-ddsruv <- DESeq(ddsruv)
-idx <- rowMeans(counts(ddsruv)) > 1
-object <- list(counts = counts(ddsruv)[idx,],
-               fitted.values = assays(ddsruv)[["mu"]][idx,],
-               dispersion = dispersions(ddsruv)[idx])
-object <- new("DGEGLM", object)
-resid <- residuals(object)
-```
-
-```{r}
-set <- newSeqExpressionSet(object$counts)
-genes <- rownames(object$counts)
-ruv <- RUVr(set, genes, k=2, resid)
-```
-
-As before we can compare how well the RUV factors match the known cell 
-line information:
-
-```{r ruvplot}
-par(mfrow=c(2,1),mar=c(5,5,1,1))
-stripchart(pData(ruv)[,1] ~ dds$cell,vertical=TRUE)
-abline(h=0)
-stripchart(pData(ruv)[,2] ~ dds$cell,vertical=TRUE)
-abline(h=0)
-```
-
-```{r}
-ddsruv$W1 <- pData(ruv)[,1]
-ddsruv$W2 <- pData(ruv)[,2]
-design(ddsruv) <- ~ W1 + W2 + dex
-ddsruv <- DESeq(ddsruv)
-head(results(ddsruv),4)
-```
-
-Once we are finished, we detach *RUVSeq* and its dependencies
-so that we can continue to use the *plotPCA* and *plotMA* functions
-defined in *DESeq2*. 
-
-```{r}
-detach(package:RUVSeq)
-detach(package:EDASeq)
-detach(package:edgeR)
-detach(package:limma)
 ```
 
 ## Time-series experiments
