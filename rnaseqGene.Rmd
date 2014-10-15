@@ -1217,12 +1217,20 @@ variables which we want to account for in our analysis.
 library("sva")
 ```
 
+Below we get a matrix of counts for which the average count across
+samples is larger than 1. As we described above, we are trying to
+recover any hidden batch effects, supposing that we do not know the
+cell line information. So we use a full model matrix with the
+\Robject{dex} variable, and a reduced, or null, model matrix with only
+an intercept term. Finally we specify that we want to estimate 2
+surrogate variables. For more information read the help at `?svaseq`.
+
 ```{r}
 idx <- rowMeans(counts(dds)) > 1
 dat <- counts(dds)[idx,]
 mod <- model.matrix(~ dex, colData(dds))
 mod0 <- model.matrix(~ 1, colData(dds))
-svseq <- svaseq(dat,mod,mod0,n.sv=2)
+svseq <- svaseq(dat, mod, mod0, n.sv=2)
 svseq$sv
 ```
 
@@ -1236,6 +1244,10 @@ abline(h=0)
 stripchart(svseq$sv[,2] ~ dds$cell,vertical=TRUE)
 abline(h=0)
 ```
+
+Finally, in order to use SVA to remove any effect on the counts from
+our surrogate variables, we simply add these two as columns to the
+*DESeqDataSet* and add them to the design.
 
 ```{r}
 ddssva <- dds
