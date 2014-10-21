@@ -1280,6 +1280,12 @@ resTC$symbol <- mcols(ddsTC)$symbol
 head(resTC[order(resTC$pvalue),],4)
 ```
 
+Note that this is just one of the tests which can be applied to time
+series data. Another options would be to model the counts as a
+smooth function of time, and to include an interaction term of the
+condition with the smooth function. It is possible to build such a
+model using spline basis functions within R.
+
 We can plot the counts for the groups over time using
 `r CRANpkg("ggplot2")`, for the gene with the smallest *p* value,
 testing for condition-dependent time profile and accounting for
