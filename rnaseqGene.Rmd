@@ -1,5 +1,7 @@
 <!-- rmarkdown v1 -->
 
+<!-- to compile this: library("knitr"); knit2html("rnaseqGene.Rmd") -->
+
 # RNA-Seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2], Wolfgang Huber [2]
@@ -157,21 +159,21 @@ Once the reads have been aligned, there are a number of tools which
 can be used to count the number of reads which can be unambiguously
 assigned to genomic features for each sample. These often take as
 input SAM/BAM alignment files and a file specifiying the genomic
-features, e.g. GFF3 or GTF files specifying a gene model.
+features, e.g. a GFF3 or GTF file specifying the gene models.
 
 The following tools can be used generate count matrices:
 
 function            | package                                              | framework      | output                 | *DESeq2* input function
 --------------------|------------------------------------------------------|----------------|------------------------|-------------------------
 *summarizeOverlaps* | `r Biocpkg("GenomicAlignments")`                     | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
-*featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | count matrix           | *DESeqDataSetFromMatrix*
-*htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | count files            | *DESeqDataSetFromHTSeq* 
+*featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
+*htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | files                  | *DESeqDataSetFromHTSeq* 
 
 Using the `Run` column in the sample table, we construct the full
 paths to the files we want to perform the counting operation on:
 
 ```{r}
-filenames <- file.path(dir,paste0(sampleTable$Run, "_subset.bam"))
+filenames <- file.path(dir, paste0(sampleTable$Run, "_subset.bam"))
 ```
 
 We indicate in Bioconductor that these files are BAM files using the
@@ -323,20 +325,23 @@ use a variety of Bioconductor packages for exploration and
 differential expression of the counts, including
 `r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`,
 `r Biocpkg("DSS")` and `r Biocpkg("limma")`.
-We will continue, using *DESeq2*. The *SummarizedExperiment* object is
+We will continue, using `r Biocpkg("DESeq2")`. The *SummarizedExperiment* object is
 all we need to start our analysis. In the following section we will
-show how to create the data object which is used in *DESeq2*, either
-using the *SummarizedExperiment*, or in general, a count matrix which
-has been loaded into R.
+show how to use it to create the data object used by `r Biocpkg("DESeq2")`.
 
 ## The *DESeqDataSet*, column metadata, and the design formula
 
-Bioconductor software packages often have a special class of data
-object, which contains special slots and requirements. The data object
-class in *DESeq2* is the *DESeqDataSet*, which is built on top of the
-*SummarizedExperiment* class.  One of the main differences is that the
-`assay` slot is instead accessed using the *count* accessor, and the
-values in this matrix must be non-negative integers.
+Bioconductor software packages often define and use a custom class for their data
+object, which makes sure that all the needed data slots are consistently provided 
+and fulfill the requirements. 
+In addition, Bioconductor has general data classes (such as the *SummarizedExperiment*)
+that can be used to move data between packages. 
+In `r Biocpkg("DESeq2")`, the custom class is called *DESeqDataSet*. It is built on top of the
+*SummarizedExperiment* class (in technical term, it is a subclass), and it is easy 
+to convert *SummarizedExperiment* instances into *DESeqDataSet* and vice versa.  
+One of the main differences is that the
+`assay` slot is instead accessed using the *count* accessor, and the class enforces that the
+values in this matrix are non-negative integers.
 
 A second difference is that the *DESeqDataSet* has an associated
 *design formula*.  The design is specified at the beginning of the
@@ -351,7 +356,7 @@ analysis.
 The simplest design formula for differential expression would be
 `~ condition`, where `condition` is a column in `colData(dds)` which
 specifies which of two (or more groups) the samples belong to.  For
-the parathyroid experiment, we will specify `~ cell + dex`, which
+the airway experiment, we will specify `~ cell + dex`, which
 means that we want to test for the effect of dexamethasone (the last
 factor), controlling for the effect of different cell line (the first
 factor).
@@ -510,7 +515,7 @@ Many common statistical methods for exploratory analysis of
 multidimensional data, especially methods for clustering and
 ordination (e.g., principal-component analysis and the like), work
 best for (at least approximately) homoskedastic data; this means that
-the variance of an observable quantity (i.e., here, the expression
+the variance of an observed quantity (here, the expression
 strength of a gene) does not depend on the mean. In RNA-Seq data,
 however, variance grows with the mean. For example, if one performs
 PCA (principal components analysis) directly on a matrix of normalized
@@ -532,7 +537,7 @@ an empirical Bayesian prior on inter-sample differences in the form of
 a *ridge penalty*, this is done such that the rlog-transformed data
 are approximately homoskedastic. See the help for `?rlog` for more
 information and options. Another transformation, the *variance
-stabilizing transformation*, is discussed alonside the *rlog* in the
+stabilizing transformation*, is discussed alongside the *rlog* in the
 *DESeq2* vignette. 
 
 **Note:** the rlog transformation is provided for applications *other*
@@ -681,7 +686,7 @@ qplot(PC1, PC2, color=dex, shape=cell, data=data) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 ```
 
-From both visualizations, we see that the differences between cells is
+From both visualizations, we see that the differences between cells are
 considerable, though not stronger than the differences due to
 treatment with dexamethasone. This shows why it will be important to
 account for this in differential testing by using a paired design
@@ -718,7 +723,7 @@ It will be convenient to make sure that `untrt` is the first level in
 the `dex` factor, so that the default log2 fold changes are calculated
 as treated over untreated (by default R will chose the first
 alphabetical level, remember: computers don't know what to do unless
-you tell them!) The function *relevel* achieves this:
+you tell them). The function *relevel* achieves this:
 
 ```{r}
 dds$dex <- relevel(dds$dex, "untrt")
