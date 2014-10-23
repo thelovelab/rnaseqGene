@@ -12,6 +12,7 @@ Harvard School of Public Health, Boston, US;
 [2] European Molecular Biology Laboratory (EMBL), Heidelberg, Germany.
 
 ```{r style, echo=FALSE, results="asis"}
+options(bitmapType="Cairo")
 library(BiocStyle)
 BiocStyle::markdown()
 options(width=100)
