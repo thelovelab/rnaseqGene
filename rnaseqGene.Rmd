@@ -2,6 +2,13 @@
 
 <!-- to compile this: library("knitr"); knit2html("rnaseqGene.Rmd") -->
 
+<!-- a list of all required libraries:
+     reqlibs = sub(".*library\\(\"(.*?)\"\\).*","\\1",
+	               grep("library\\(",readLines("rnaseqGene.Rmd"),value=TRUE))
+     find.package(reqlibs)
+-->
+
+
 # RNA-Seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2], Wolfgang Huber [2]
@@ -13,13 +20,24 @@ Harvard School of Public Health, Boston, US;
 
 ```{r style, echo=FALSE, results="asis"}
 options(bitmapType="cairo")
-library(BiocStyle)
+library("BiocStyle")
 BiocStyle::markdown()
 options(width=100)
-opts_chunk$set(message = FALSE, error = FALSE) ## matter of taste but wh likes these better
-## ML: I want warnings because makeTranscriptDbFromGFF gives 2 benign warnings
-## and I don't want users to be surprised.
+opts_chunk$set(message = FALSE, error = FALSE)
 ```
+
+## Contents
+
+* [Counting reads](#count) 
+* [Building a DESeqDataSet](#construct)
+* [Visual exploration](#eda)
+* [Differential expression](#de)
+* [Diagnostic plots](#diagnostic)
+* [Annotation](#annotate)
+* [Accounting for unknown batches](#batch)
+* [Time series experiments](#time)
+
+## Introduction
 
 This lab will walk you through an end-to-end RNA-Seq differential
 expression workflow, using `r Biocpkg("DESeq2")` along with other
@@ -110,7 +128,8 @@ cat files | parallel -j 7 samtools view -bS aligned/{}.Aligned.out.sam -o aligne
 The BAM files for a number of sequencing runs can then be used to
 generate count matrices, as described in the following section.
 
-## Example BAM files
+<a id="count"></a>
+## Counting reads
 
 Besides the main count matrix, which we will use later, the
 `r Biocexptpkg("airway")` package also contains a small subset of the raw
@@ -154,8 +173,6 @@ line are used to print the result in addition to storing it to the
 csvfile <- file.path(dir,"sample_table.csv")
 (sampleTable <- read.csv(csvfile,row.names=1))
 ```
-
-## Counting reads in genes
 
 Once the reads have been aligned, there are a number of tools which
 can be used to count the number of reads which can be unambiguously
@@ -331,29 +348,31 @@ We will continue, using `r Biocpkg("DESeq2")`. The *SummarizedExperiment* object
 all we need to start our analysis. In the following section we will
 show how to use it to create the data object used by `r Biocpkg("DESeq2")`.
 
+<a id="construct"></a>
 ## The *DESeqDataSet*, column metadata, and the design formula
 
-Bioconductor software packages often define and use a custom class for their data
-object, which makes sure that all the needed data slots are consistently provided 
-and fulfill the requirements. 
-In addition, Bioconductor has general data classes (such as the *SummarizedExperiment*)
-that can be used to move data between packages. 
-In `r Biocpkg("DESeq2")`, the custom class is called *DESeqDataSet*. It is built on top of the
-*SummarizedExperiment* class (in technical term, it is a subclass), and it is easy 
-to convert *SummarizedExperiment* instances into *DESeqDataSet* and vice versa.  
-One of the main differences is that the
-`assay` slot is instead accessed using the *count* accessor, and the class enforces that the
+Bioconductor software packages often define and use a custom class for
+their data object, which makes sure that all the needed data slots are
+consistently provided and fulfill the requirements.  In addition,
+Bioconductor has general data classes (such as the
+*SummarizedExperiment*) that can be used to move data between
+packages.  In `r Biocpkg("DESeq2")`, the custom class is called
+*DESeqDataSet*. It is built on top of the *SummarizedExperiment* class
+(in technical term, it is a subclass), and it is easy
+to convert *SummarizedExperiment* instances into *DESeqDataSet* and vice versa.
+One of the main differences is that the `assay` slot is instead
+accessed using the *count* accessor, and the class enforces that the
 values in this matrix are non-negative integers.
 
 A second difference is that the *DESeqDataSet* has an associated
-*design formula*.  The design is specified at the beginning of the
-analysis, as it will inform many of the *DESeq2* functions how to
-treat the samples in the analysis (one exception is the size factor
-estimation, i.e., the adjustment for differing library sizes, which
-does not depend on the design formula).  The design formula tells
-which variables in the column metadata table (`colData`) specify the
-experimental design and how these factors should be used in the
-analysis.
+*design formula*. The experimental design is specified at the
+beginning of the analysis, as it will inform many of the *DESeq2*
+functions how to treat the samples in the analysis (one exception is
+the size factor estimation, i.e., the adjustment for differing library
+sizes, which does not depend on the design formula).  The design
+formula tells which variables in the column metadata table (`colData`)
+specify the experimental design and how these factors should be used
+in the analysis.
 
 The simplest design formula for differential expression would be
 `~ condition`, where `condition` is a column in `colData(dds)` which
@@ -369,9 +388,9 @@ that can be described within an ANOVA-like framework.  Note that
 function of base R. If the question of interest is whether a fold
 change due to treatment is different across groups, interaction terms
 can be included using models such as
-`~ group + treatment + group:treatment`.
-More complex designs such as these are covered in
-the `r Biocpkg("DESeq2")` vignette.
+`~ group + treatment + group:treatment`. See the manual page for
+`?results` for examples of extracting contrasts from more complex
+designs such as these.
 
 In the following sections, we will demonstrate the construction of the
 *DESeqDataSet* from two starting points:
@@ -509,6 +528,7 @@ metadata table, we use:
 We will continue with the object generated from the
 *SummarizedExperiment* section. 
 
+<a id="eda"></a>
 ## Visually exploring the dataset
 
 ### The rlog transformation
@@ -611,11 +631,18 @@ library("gplots")
 library("RColorBrewer")
 ```
 
+We have to provide a hierarchical clustering `hc` to the *heatmap.2*
+function based on the sample distances, or else the *heatmap.2*
+function would calculate a clustering based on the distances between
+the rows/columns of the distance matrix.
+
 ```{r distheatmap, fig.width=8}
 sampleDistMatrix <- as.matrix( sampleDists )
 rownames(sampleDistMatrix) <- paste( rld$dex, rld$cell, sep="-" )
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-heatmap.2( sampleDistMatrix, trace="none", col=colors,
+hc <- hclust(sampleDists)
+heatmap.2( sampleDistMatrix, Rowv=as.dendrogram(hc),
+          symm=TRUE, trace="none", col=colors,
           margins=c(2,10), labCol=FALSE )
 ```
 
@@ -643,7 +670,9 @@ We can plot the heatmap as before:
 samplePoisDistMatrix <- as.matrix( poisd$dd )
 rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep="-" )
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-heatmap.2( samplePoisDistMatrix, trace="none", col=colors,
+hc <- hclust(poisd$dd)
+heatmap.2( samplePoisDistMatrix, Rowv=as.dendrogram(hc),
+          symm=TRUE, trace="none", col=colors,
           margins=c(2,10), labCol=FALSE )
 ```
 
@@ -668,6 +697,8 @@ labelling the samples; they tell the function to use them to choose
 colors. We can also build the PCA plot from scratch using
 `r CRANpkg("ggplot2")`. This is done by asking the *plotPCA* function
 to return the data used for plotting rather than building the plot.
+See the *ggplot2* [documentation](http://docs.ggplot2.org/current/)
+for more details on using *ggplot*.
 
 ```{r}
 (data <- plotPCA(rld, intgroup = c( "dex", "cell"), returnData=TRUE))
@@ -719,6 +750,7 @@ mds <- cbind(mds, colData(dds))
 qplot(X1,X2,color=dex,shape=cell,data=mds)
 ```
 
+<a id="de"></a>
 ## Differential expression analysis
 
 It will be convenient to make sure that `untrt` is the first level in
@@ -918,6 +950,7 @@ order is to add a `-` sign. Alternatively, you can use the argument
 head(resSig[ order( -resSig$log2FoldChange ), ])
 ```
 
+<a id="diagnostic"></a>
 ## Diagnostic plots
 
 A quick way to visualize the counts for a particular gene is to use
@@ -925,19 +958,36 @@ the *plotCounts* function, which takes as arguments the
 *DESeqDataSet*, a gene name, and the group over which to plot the
 counts. 
 
-```{r plotcounts}
+```{r plotcounts, fig.width=5, fig.height=5}
 topGene <- rownames(res)[which.min(res$padj)]
 plotCounts(dds, gene=topGene, intgroup=c("dex"))
 ```
 
-Note that the *DESeq* test actually takes into account the cell line
-effect, so a more detailed plot would also show the cell lines. An
-example of building up such a plot with the *ggplot* function from the
+We can also make more customizable plots using the *ggplot* function from the
 `r CRANpkg("ggplot2")` package:
 
-```{r ggplotcounts, fig.height=5}
+```{r ggplotcountsjitter, fig.height=5}
 data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
+ggplot(data, aes(x=dex, y=count, color=cell)) +
+  scale_y_log10() + 
+  geom_point(position=position_jitter(width=.1,height=0))
+```
+
+Here we use a more structural arrangement instead of random jitter,
+and color by the treatment.
+
+```{r ggplotcountsdot, fig.height=5}
+ggplot(data, aes(x=dex, y=count, fill=dex)) +
+  scale_y_log10() + 
+  geom_dotplot(binaxis="y", stackdir="center")
+```
+
+Note that the *DESeq* test actually takes into account the cell line
+effect, so a more detailed plot would also show the cell lines. 
+
+```{r ggplotcountsgroup, fig.height=5}
 ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
+  scale_y_log10() + 
   geom_point() + geom_line()
 ```
 
@@ -1109,7 +1159,8 @@ and hence independent. The independent filtering software used inside
 contains a reference to a paper describing the statistical foundation
 for independent filtering.
 
-## Adding gene names
+<a id="annotate"></a>
+## Annotation: adding gene names
 
 Our result table only uses Ensembl gene IDs, but gene names may be
 more informative. Bioconductor's annotation packages help with mapping
@@ -1165,7 +1216,8 @@ res$entrezgene <- convertIDs(row.names(res), "ENSEMBL", "ENTREZID", org.Hs.eg.db
 
 Now the results have the desired external gene ids:
 ```{r}
-head(res[order(res$pvalue),])
+resOrdered <- res[order(res$pvalue),]
+head(resOrdered)
 ```
 
 ## Exporting results
@@ -1177,29 +1229,63 @@ then load with a spreadsheet program such as Excel. The call to
 processed by *write.csv*.
 
 ```{r eval=FALSE}
-write.csv(as.data.frame(res), file="results.csv")
+write.csv(as.data.frame(resOrdered), file="results.csv")
 ```
 
 ## Plotting fold changes in genomic space
+
+If we have used the *summarizeOverlaps* function to count the reads,
+then our *DESeqDataSet* object is built on top of ready-to-use
+Bioconductor objects specifying the genomic location of the genes. We
+can therefore easily plot our differential expression results in
+genomic space.  While the *results* function by default outputs a
+*DataFrame*, using the `format` argument, we can ask for *GRanges* or
+*GRangesList* output.
 
 ```{r}
 (resGR <- results(dds, format="GRanges"))
 resGR$symbol <- convertIDs(names(resGR), "ENSEMBL", "SYMBOL", org.Hs.eg.db)
 ```
 
+We will use the `r Biocpkg("Gviz")` package for plotting the GRanges
+and associated metadata: the log fold changes due to dexamethasone treatment.
+
 ```{r}
 library("Gviz")
 ```
 
-```{r gvizplot}
-options(ucscChromosomeNames=FALSE)
+The following code chunk specifies a window of 1 million base pairs
+upstream and downstream from the gene with the smallest *p* value.
+We create a subset of our full results, for genes within the window
+which have a fold change (exclude genes with no counts). We add the
+gene symbol as a name, if the symbol exists or is not duplicated in
+our subset.
+
+```{r}
 window <- resGR[topGene] + 1e6
 strand(window) <- "*"
 hasLFC <- !is.na(resGR$log2FoldChange)
 resGRsub <- resGR[resGR %over% window & hasLFC]
 naOrDup <- is.na(resGRsub$symbol) | duplicated(resGRsub$symbol)
 resGRsub$group <- ifelse(naOrDup, names(resGRsub), resGRsub$symbol)
+```
+
+We create a vector specifying if the genes in this subset had a low
+false discovery rate. 
+
+```{r}
 sig <- factor(ifelse(is.na(resGRsub$padj) | resGRsub$padj > .1,"notsig","sig"))
+```
+
+We can then plot the results using `r Biocpkg("Gviz")` functions. We
+create an axis track specifying our location in the genome, a track
+which will show the genes and their names, colored by significance,
+and a data track which will draw vertical bars showing the moderated
+log fold change produced by *DESeq2*, which we know are only large
+when the effect is well supported by the information in the counts.
+
+```{r gvizplot}
+options(ucscChromosomeNames=FALSE)
 g <- GenomeAxisTrack()
 a <- AnnotationTrack(resGRsub, name="gene ranges", feature=sig)
 d <- DataTrack(resGRsub, data="log2FoldChange", baseline=0,
@@ -1207,6 +1293,7 @@ d <- DataTrack(resGRsub, data="log2FoldChange", baseline=0,
 plotTracks(list(g,d,a), groupAnnotation="group", notsig="lightblue", sig="pink")
 ```
 
+<a id="batch"></a>
 ## Removing hidden batch effects
 
 Suppose we did not know that there were different cell lines involved
@@ -1265,12 +1352,19 @@ ddssva <- DESeq(ddssva)
 head(results(ddssva), 4)
 ```
 
-## Time-series experiments
+<a id="time"></a>
+## Time series experiments
 
-Here we demontrate with the `r Biocexptpkg("fission")` data package,
+*DESeq2* can be used to analyze time series experiments, for example
+ to find those genes which react in a condition specific manner over
+ time. Here we demontrate a basic time series analysis with the
+ `r Biocexptpkg("fission")` data package,
 which contains gene counts for an RNA-Seq time course of fission
 yeast. The yeast were exposed to oxidative stress, and half of the
 samples contain a deletion of the gene *atf21*.
+We use a design which models the strain difference at time 0,
+ the difference over time, and any strain-specific differences over
+ time (the interaction term `strain:minute`).
 
 ```{r}
 library("fission")
@@ -1278,7 +1372,12 @@ data("fission")
 ddsTC <- DESeqDataSet(fission, ~ strain + minute + strain:minute)
 ```
 
-The following chunk performs a likelihood ratio test.
+The following chunk performs a likelihood ratio test, where we remove
+the strain-specific differences over time. Genes with small *p* values
+from this test are those which, at one or more time points after time
+0 showed a strain-specific effect. Note therefore that this will not
+give small *p* values to genes which moved up or down over time in the
+same way in both strains. 
 
 ```{r}
 ddsTC <- DESeq(ddsTC, test="LRT", reduced = ~ strain + minute)
@@ -1287,8 +1386,8 @@ resTC$symbol <- mcols(ddsTC)$symbol
 head(resTC[order(resTC$pvalue),],4)
 ```
 
-Note that this is just one of the tests which can be applied to time
-series data. Another options would be to model the counts as a
+This is just one of the tests which can be applied to time
+series data. Another option would be to model the counts as a
 smooth function of time, and to include an interaction term of the
 condition with the smooth function. It is possible to build such a
 model using spline basis functions within R.
