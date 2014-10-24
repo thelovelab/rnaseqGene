@@ -19,15 +19,7 @@ Harvard School of Public Health, Boston, US;
 [2] European Molecular Biology Laboratory (EMBL), Heidelberg, Germany.
 
 ```{r style, echo=FALSE, results="asis"}
-if (.Platform$OS.type == "windows")
-{
-    env.var <- 'USERNAME'
-} else {
-    env.var <- 'USER'
-}
-if (Sys.getenv(env.var) == "jenkins")
-    options(bitmapType="cairo")
-
+options(bitmapType="cairo")
 library("BiocStyle")
 BiocStyle::markdown()
 options(width=100)
