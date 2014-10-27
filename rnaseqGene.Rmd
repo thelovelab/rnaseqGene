@@ -191,7 +191,7 @@ csvfile <- file.path(dir,"sample_table.csv")
 Once the reads have been aligned, there are a number of tools which
 can be used to count the number of reads which can be unambiguously
 assigned to genomic features for each sample. These often take as
-input SAM/BAM alignment files and a file specifiying the genomic
+input SAM/BAM alignment files and a file specifying the genomic
 features, e.g. a GFF3 or GTF file specifying the gene models.
 
 The following tools can be used generate count matrices:
@@ -671,7 +671,7 @@ Distance, implemented in the CRAN package
 structure of counts into consideration when calculating the distances
 between samples.  The *PoissonDistance* function takes the original
 count matrix (not normalized) with samples as rows instead of columns,
-so we need to tranpose the counts in `dds`.
+so we need to transpose the counts in `dds`.
 
 ```{r}
 library("PoiClaClu")
@@ -707,7 +707,7 @@ plotPCA(rld, intgroup = c("dex", "cell"))
 
 Here, we have used the function *plotPCA* which comes with *DESeq2*.
 The two terms specified by `intgroup` are the interesting groups for
-labelling the samples; they tell the function to use them to choose
+labeling the samples; they tell the function to use them to choose
 colors. We can also build the PCA plot from scratch using
 `r CRANpkg("ggplot2")`. This is done by asking the *plotPCA* function
 to return the data used for plotting rather than building the plot.
@@ -1371,7 +1371,7 @@ head(results(ddssva), 4)
 
 *DESeq2* can be used to analyze time series experiments, for example
  to find those genes which react in a condition specific manner over
- time. Here we demontrate a basic time series analysis with the
+ time. Here we demonstrate a basic time series analysis with the
  `r Biocexptpkg("fission")` data package,
 which contains gene counts for an RNA-Seq time course of fission
 yeast. The yeast were exposed to oxidative stress, and half of the
