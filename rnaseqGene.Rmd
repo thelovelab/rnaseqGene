@@ -13,6 +13,10 @@
      find.package(reqlibs)
 -->
 
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
 # RNA-Seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2], Wolfgang Huber [2]
