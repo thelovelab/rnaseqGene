@@ -1,7 +1,7 @@
 <!-- rmarkdown v1 -->
 <!--
 %\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{RNA-Seq workflow -  gene-level exploratory analysis and differential expression}
+%\VignetteIndexEntry{RNA-Seq workflow at the gene level}
 -->
 
 <!-- to compile this: library("knitr"); knit2html("rnaseqGene.Rmd") -->
