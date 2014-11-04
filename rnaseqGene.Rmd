@@ -836,7 +836,7 @@ how much the gene's expression seems to have changed due to treatment
 with dexamethasone in comparison to untreated samples.  This value is
 reported on a logarithmic scale to base 2: for example, a log2 fold
 change of 1.5 means that the gene's expression is increased by a
-multiplicative factor of $2^{1.5} \approx 2.82$.
+multiplicative factor of \\( 2\^1.5 \approx 2.82 \\).
 
 Of course, this estimate has an uncertainty associated with it, which
 is available in the column `lfcSE`, the standard error estimate for
@@ -941,7 +941,7 @@ BH-adjusted *p* values, are given in the column `padj` of the `res`
 object.
 
 Hence, if we consider a fraction of 10% false positives acceptable,
-we can consider all genes with an adjusted *p* value below $10% = 0.1$
+we can consider all genes with an adjusted *p* value below 10% = 0.1
 as significant. How many such genes are there?
 
 ```{r}
@@ -1045,7 +1045,7 @@ also on its within-group variability, which *DESeq2* quantifies as the
 *dispersion*. For strongly expressed genes, the dispersion can be
 understood as a squared coefficient of variation: a dispersion value
 of 0.01 means that the gene's expression tends to differ by typically
-$\sqrt{0.01} = 10\%$ between samples of the same treatment group. For
+\\(\sqrt{0.01} = 10\%\\) between samples of the same treatment group. For
 weak genes, the Poisson noise is an additional source of noise.
 
 The function *plotDispEsts* visualizes *DESeq2*'s dispersion
