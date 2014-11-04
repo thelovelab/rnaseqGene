@@ -836,7 +836,7 @@ how much the gene's expression seems to have changed due to treatment
 with dexamethasone in comparison to untreated samples.  This value is
 reported on a logarithmic scale to base 2: for example, a log2 fold
 change of 1.5 means that the gene's expression is increased by a
-multiplicative factor of \\( 2\^1.5 \approx 2.82 \\).
+multiplicative factor of \\( 2\^{1.5} \approx 2.82 \\).
 
 Of course, this estimate has an uncertainty associated with it, which
 is available in the column `lfcSE`, the standard error estimate for
