@@ -1,5 +1,5 @@
 ---
-Author: Michael Love (michaelisaiahlove at gmail dot com)
+Author: Michael Love
 Date: March 27, 2015
 ---
 
@@ -31,7 +31,7 @@ Harvard School of Public Health, Boston, US;
 
 [2] European Molecular Biology Laboratory (EMBL), Heidelberg, Germany.
 
-```{r style, echo=FALSE, results="asis"}
+```{r style, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
 library("BiocStyle")
 library("knitr")
 options(width=100)
@@ -72,6 +72,13 @@ We note that a number of other Bioconductor packages can also be used for
 statistical inference of differential expression at the gene level including
 `r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`, `r Biocpkg("DSS")` and
 `r Biocpkg("limma")`.
+
+If you have questions about this workflow, please post them to the
+[Bioconductor support site](https://support.bioconductor.org/).
+If the questions concern a specific package, you can tag the post with the name of the package,
+or for general questions about the workflow, tag the post with `deseq2`. Note the
+[posting guide](http://www.bioconductor.org/help/support/posting-guide/)
+for crafting an optimal question for the support site.
 
 ## Experimental data
 
@@ -762,7 +769,7 @@ transformed counts:
 
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
 mds <- data.frame(cmdscale(sampleDistMatrix))
-mds <- cbind(mds, colData(rld))
+mds <- cbind(mds, as.data.frame(colData(rld)))
 qplot(X1,X2,color=dex,shape=cell,data=mds)
 ```
 
@@ -770,7 +777,7 @@ And here from the *PoissonDistance*:
 
 ```{r mdspois, fig.width=6, fig.height=4.5}
 mds <- data.frame(cmdscale(samplePoisDistMatrix))
-mds <- cbind(mds, colData(dds))
+mds <- cbind(mds, as.data.frame(colData(dds)))
 qplot(X1,X2,color=dex,shape=cell,data=mds)
 ```
 
