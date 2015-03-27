@@ -615,7 +615,7 @@ values. For the *log2* method, we need estimate size factors to
 account for sequencing depth (this is done automatically for the
 *rlog* method).
 
-```{r rldplot, fig.width=10, fig.height=5}
+```{r rldplot, fig.width=8, fig.height=4}
 par( mfrow = c( 1, 2 ) )
 dds <- estimateSizeFactors(dds)
 plot( log2( 1 + counts(dds, normalized=TRUE)[ , 1:2] ),
@@ -1265,6 +1265,13 @@ processed by *write.csv*.
 ```{r eval=FALSE}
 write.csv(as.data.frame(resOrdered), file="results.csv")
 ```
+
+Another more sophisticated package for exporting results from various
+Bioconductor analysis packages is the `r Biocpkg("ReportingTools")` package.
+*ReportingTools* will automatically generate dynamic HTML documents,
+including links to external databases using gene identifiers
+and boxplots summarizing the normalized counts across groups.
+See the *ReportingTools* vignettes for more details.
 
 ## Plotting fold changes in genomic space
 
