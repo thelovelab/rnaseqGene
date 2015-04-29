@@ -898,6 +898,12 @@ values can be assigned `NA` if the gene was excluded from analysis
 because it contained an extreme count outlier. For more information,
 see the outlier detection section of the vignette.
 
+If you use *DESeq2* results in published research, please cite our
+methods paper which you can find by typing `citation("DESeq2")`
+(and the same holds for other Bioconductor packages).
+This helps to support the individuals who put time into open source
+software for genomic analysis.
+
 ### Other comparisons
 
 In general, the results for a comparison of any two levels of a
