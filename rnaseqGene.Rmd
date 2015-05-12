@@ -319,10 +319,10 @@ text(62.5,82.5,"colData")
 
 Here we show the component parts of a *SummarizedExperiment* object,
 and also its subclasses, such as the *DESeqDataSet* which is
-explained in the next section. The `assay(s)` (red block) contains
+explained in the next section. The `assay(s)` (pink block) contains
 the matrix (or matrices) of summarized values, the `rowRanges` (blue
 block) contains information about the genomic ranges, and the
-`colData` (purple block) contains information about the samples or
+`colData` (green block) contains information about the samples or
 experiments. The highlighted line in each block represents the first
 row (note that the first row of `colData` lines up with the first
 column of the `assay`.
@@ -379,7 +379,7 @@ Bioconductor has general data classes (such as the
 *SummarizedExperiment*) that can be used to move data between
 packages.  In `r Biocpkg("DESeq2")`, the custom class is called
 *DESeqDataSet*. It is built on top of the *SummarizedExperiment* class
-(in technical term, it is a subclass), and it is easy
+(in technical terms, *DESeqDataSet* is a subclass), and it is easy
 to convert *SummarizedExperiment* instances into *DESeqDataSet* and vice versa.
 One of the main differences is that the `assay` slot is instead
 accessed using the *count* accessor, and the class enforces that the
