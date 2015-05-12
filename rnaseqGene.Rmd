@@ -320,7 +320,7 @@ text(62.5,40,"assay(s)")
 text(62.5,30,"e.g. 'counts'")
 polygon(c(20,40,40,20),c(10,10,70,70),col=rgb(0,0,1,.5),border=NA)
 polygon(c(20,40,40,20),c(68,68,70,70),col=rgb(0,0,1,.5),border=NA)
-text(30,40,"rowData")
+text(30,40,"rowRanges")
 polygon(c(45,80,80,45),c(75,75,90,90),col=rgb(.5,0,.5,.5),border=NA)
 polygon(c(45,47,47,45),c(75,75,90,90),col=rgb(.5,0,.5,.5),border=NA)
 text(62.5,82.5,"colData")
@@ -329,7 +329,7 @@ text(62.5,82.5,"colData")
 Here we show the component parts of a *SummarizedExperiment* object,
 and also its subclasses, such as the *DESeqDataSet* which is
 explained in the next section. The `assay(s)` (red block) contains
-the matrix (or matrices) of summarized values, the `rowData` (blue
+the matrix (or matrices) of summarized values, the `rowRanges` (blue
 block) contains information about the genomic ranges, and the
 `colData` (purple block) contains information about the samples or
 experiments. The highlighted line in each block represents the first
@@ -341,23 +341,23 @@ from the original experiment. Nevertheless, we
 can still investigate the resulting *SummarizedExperiment* by looking at
 the counts in the `assay` slot, the phenotypic data about the samples in
 `colData` slot (in this case an empty *DataFrame*), and the data about the
-genes in the `rowData` slot.
+genes in the `rowRanges` slot.
 
 ```{r}
 se
 head(assay(se))
 colSums(assay(se))
 colData(se)
-rowData(se)
+rowRanges(se)
 ```
 
-Note that the `rowData` slot is a *GRangesList*, which
+Note that the `rowRanges` slot is a *GRangesList*, which
 contains all the information about the exons for each gene, i.e., for each row
 of the count matrix. It also contains metadata about the construction
 of the gene model in the `metadata` slot.
 
 ```{r}
-str(metadata(rowData(se)))
+str(metadata(rowRanges(se)))
 ```
 
 The `colData` slot, so far empty, should contain all the metadata.
