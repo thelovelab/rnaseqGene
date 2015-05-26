@@ -659,10 +659,13 @@ library("pheatmap")
 library("RColorBrewer")
 ```
 
-We have to provide a hierarchical clustering `hc` to the *heatmap.2*
-function based on the sample distances, or else the *heatmap.2*
-function would calculate a clustering based on the distances between
-the rows/columns of the distance matrix.
+In order to plot the sample distance matrix with the rows/columns
+arranged by those distances in the matrix,
+we manually provide the `sampleDists` to the `clustering_distance`
+argument of the *pheatmap* function.
+Otherwise the *pheatmap* function would assume that the matrix contains
+the data values themselves, and would calculate distances between the
+rows/columns of the distance matrix, which is not desired.
 
 ```{r distheatmap, fig.width=8}
 sampleDistMatrix <- as.matrix( sampleDists )
