@@ -13,8 +13,7 @@ Date: March 27, 2015
 
 <!--
      # a list of all required libraries:
-     reqlibs = sub(".*library\\(\"(.*?)\"\\).*","\\1",
-	               grep("library\\(",readLines("rnaseqGene.Rmd"),value=TRUE))
+     reqlibs = sub(".*library\\(\"(.*?)\"\\).*","\\1",grep("library\\(",readLines("rnaseqGene.Rmd"),value=TRUE))
      find.package(reqlibs)
 -->
 
@@ -1139,7 +1138,6 @@ and plot a heatmap. We provide the column side colors to help identify
 the treated samples (in blue) from the untreated samples (in grey).
 
 ```{r genescluster}
-library(pheatmap)
 mat <- assay(rld)[ topVarGenes, ]
 mat <- mat - rowMeans(mat)
 df <- as.data.frame(colData(rld)[,c("cell","dex")])
