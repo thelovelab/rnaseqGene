@@ -184,13 +184,21 @@ Typically, we have a table with experimental metadata for our
 samples. For your own project, you might create such a comma-separated
 value (CSV) file using a text editor or spreadsheet software such as Excel.
 
-We load this file with *read.csv*. The parentheses around the last
-line are used to print the result in addition to storing it to the
-`sampleTable` object.
+We load this file with *read.csv*. 
 
 ```{r}
 csvfile <- file.path(dir,"sample_table.csv")
 (sampleTable <- read.csv(csvfile,row.names=1))
+```
+
+A note: here and elsewhere in the workflow, the parentheses `()` around the
+entire code of the last line above is an R trick to print the output of the function
+in addition to saving it to `sampleTable`. This is equivalent to saving
+and then showing the object:
+
+```{r eval=FALSE}
+sampleTable <- read.csv(csvfile,row.names=1)
+sampleTable
 ```
 
 Once the reads have been aligned, there are a number of tools which
@@ -262,7 +270,7 @@ gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
 The following line produces a *GRangesList* of all the exons grouped by gene.
 
 ```{r}
-(genes <- exonsBy(txdb, by="gene"))
+(exonsByGene <- exonsBy(txdb, by="gene"))
 ```
 
 After these preparations, the actual counting is easy. The function
@@ -280,7 +288,7 @@ library("GenomicAlignments")
 ```
 
 ```{r}
-se <- summarizeOverlaps(features=genes, reads=bamfiles,
+se <- summarizeOverlaps(features=exonsByGene, reads=bamfiles,
                         mode="Union",
                         singleEnd=FALSE,
                         ignore.strand=TRUE,
@@ -1369,7 +1377,7 @@ variables which we want to account for in our analysis.
 library("sva")
 ```
 
-Below we get a matrix of counts for which the average count across
+Below we get a matrix of normalized counts for which the average count across
 samples is larger than 1. As we described above, we are trying to
 recover any hidden batch effects, supposing that we do not know the
 cell line information. So we use a full model matrix with the
@@ -1378,8 +1386,8 @@ an intercept term. Finally we specify that we want to estimate 2
 surrogate variables. For more information read the help at `?svaseq`.
 
 ```{r}
-idx <- rowMeans(counts(dds)) > 1
-dat <- counts(dds)[idx,]
+dat <- counts(dds, normalized=TRUE)[idx,]
+idx <- rowMeans(dat) > 1
 mod <- model.matrix(~ dex, colData(dds))
 mod0 <- model.matrix(~ 1, colData(dds))
 svseq <- svaseq(dat, mod, mod0, n.sv=2)
