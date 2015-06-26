@@ -1386,8 +1386,9 @@ an intercept term. Finally we specify that we want to estimate 2
 surrogate variables. For more information read the help at `?svaseq`.
 
 ```{r}
-dat <- counts(dds, normalized=TRUE)[idx,]
+dat <- counts(dds, normalized=TRUE)
 idx <- rowMeans(dat) > 1
+dat <- dat[idx,]
 mod <- model.matrix(~ dex, colData(dds))
 mod0 <- model.matrix(~ 1, colData(dds))
 svseq <- svaseq(dat, mod, mod0, n.sv=2)
