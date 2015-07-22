@@ -60,8 +60,8 @@ analysis with *DESeq2*, and visually explore the results.
 
 We note that a number of other Bioconductor packages can also be used for
 statistical inference of differential expression at the gene level including
-`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`, `r Biocpkg("DSS")` and
-`r Biocpkg("limma")`.
+`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`, `r Biocpkg("DSS")`,
+`r Biocpkg("limma")` and `r Biocpkg("EBSeq")`.
 
 If you have questions about this workflow, please post them to the
 [Bioconductor support site](https://support.bioconductor.org/).
@@ -70,7 +70,7 @@ or for general questions about the workflow, tag the post with `deseq2`. Note th
 [posting guide](http://www.bioconductor.org/help/support/posting-guide/)
 for crafting an optimal question for the support site.
 
-## Experimental data
+### Experimental data
 
 The data used in this workflow is an RNA-Seq experiment of airway
 smooth muscle cells treated with dexamethasone, a synthetic
@@ -90,6 +90,8 @@ Cytokine Function in Airway Smooth Muscle Cells." PLoS One. 2014 Jun
 PMID: [24926665](http://www.ncbi.nlm.nih.gov/pubmed/24926665).
 GEO: [GSE52778](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778).
 
+<a id="count"></a>
+
 ## Preparing count matrices
 
 As input, the *DESeq2* package expects count data as obtained,
@@ -108,7 +110,7 @@ correctly. Hence, please do not supply other quantities, such as
 (rounded) normalized counts, or counts of covered base pairs -- this
 will only lead to nonsensical results.
 
-## Aligning reads to a reference
+### Aligning reads to a reference
 
 The computational analysis of an RNA-Seq experiment begins earlier:
 what we get from the sequencing machine is a set of FASTQ files that
@@ -146,9 +148,7 @@ cat files | parallel -j 7 samtools view -bS aligned/{}.Aligned.out.sam -o aligne
 The BAM files for a number of sequencing runs can then be used to
 generate count matrices, as described in the following section.
 
-<a id="count"></a>
-
-## Counting reads
+### Locating alignment files
 
 Besides the main count matrix, which we will use later, the
 `r Biocexptpkg("airway")` package also contains a small subset of the raw
@@ -241,10 +241,12 @@ We can check the chromosome names in the alignment files like so:
 seqinfo(bamfiles[1])
 ```
 
+### Defining gene models
+
 Next, we need to read in the gene model which will be used for
 counting reads. We will read the gene model from a
 [GTF file](http://www.ensembl.org/info/website/upload/gff.html), using
-*makeTranscriptDbFromGFF* from the `r Biocpkg("GenomicFeatures")`
+*makeTxDbFromGFF* from the `r Biocpkg("GenomicFeatures")`
 package. GTF files can be downloaded from
 Ensembl's FTP site or other gene model repositories.
 A *TranscriptDb* object is a database which can be used to
@@ -255,7 +257,7 @@ There are other options for constructing a *TranscriptDB*.
 For the *known genes* track from the UCSC Genome Browser,
 one can use the pre-built Transcript DataBase:
 `r Biocannopkg("TxDb.Hsapiens.UCSC.hg19.knownGene")`.
-The *makeTranscriptDbFromBiomart* function can be used to automatically
+The *makeTxDbFromBiomart* function can be used to automatically
 pull a gene model from Biomart. 
 
 ```{r}
@@ -264,7 +266,7 @@ library("GenomicFeatures")
 
 ```{r}
 gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
-(txdb <- makeTranscriptDbFromGFF(gtffile, format="gtf"))
+(txdb <- makeTxDbFromGFF(gtffile, format="gtf"))
 ```
 
 The following line produces a *GRangesList* of all the exons grouped by gene.
@@ -272,6 +274,8 @@ The following line produces a *GRangesList* of all the exons grouped by gene.
 ```{r}
 (exonsByGene <- exonsBy(txdb, by="gene"))
 ```
+
+### Read counting step
 
 After these preparations, the actual counting is easy. The function
 *summarizeOverlaps* from the `r Biocpkg("GenomicAlignments")`
@@ -307,6 +311,8 @@ RNA-Seq experiment was strand-specific or not. This experiment was not
 strand-specific so we set `ignore.strand` to `TRUE`.
 The `fragments` argument can be used when `singleEnd=FALSE`
 to specify if unpaired reads should be counted (yes if `fragments=TRUE`).
+
+### SummarizedExperiment
 
 ```{r sumexp, echo=FALSE}
 par(mar=c(0,0,0,0))
@@ -365,12 +371,14 @@ We hence assign our sample table to it:
 (colData(se) <- DataFrame(sampleTable))
 ```
 
+### Branching point
+
 At this point, we have counted the reads which overlap the genes in
 the gene model we specified. This is a branching point where we could
 use a variety of Bioconductor packages for exploration and
 differential expression of the counts, including
 `r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`,
-`r Biocpkg("DSS")` and `r Biocpkg("limma")`.
+`r Biocpkg("DSS")`, `r Biocpkg("limma")` and `r Biocpkg("EBSeq")`.
 We will continue, using `r Biocpkg("DESeq2")`. The *SummarizedExperiment* object is
 all we need to start our analysis. In the following section we will
 show how to use it to create the data object used by `r Biocpkg("DESeq2")`.
@@ -767,7 +775,7 @@ untreated sample from the *same* cell line). We are already set up for
 this by using the design formula `~ cell + dex` when setting up the
 data object in the beginning.
 
-## MDS plot
+### MDS plot
 
 Another plot, very similar to the PCA plot, can be made using the 
 *multidimensional scaling* (MDS) function in base R. This is useful when we
