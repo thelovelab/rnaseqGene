@@ -220,6 +220,7 @@ paths to the files we want to perform the counting operation on:
 
 ```{r}
 filenames <- file.path(dir, paste0(sampleTable$Run, "_subset.bam"))
+file.exists(filenames)
 ```
 
 We indicate in Bioconductor that these files are BAM files using the
@@ -264,15 +265,18 @@ pull a gene model from Biomart.
 library("GenomicFeatures")
 ```
 
+We indicate that none of our sequences (chromosomes) are circular
+using a 0-length character vector.
+
 ```{r}
 gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
-(txdb <- makeTxDbFromGFF(gtffile, format="gtf"))
+(txdb <- makeTxDbFromGFF(gtffile, format="gtf", circ_seqs=character()))
 ```
 
 The following line produces a *GRangesList* of all the exons grouped by gene.
 
 ```{r}
-(exonsByGene <- exonsBy(txdb, by="gene"))
+(ebg <- exonsBy(txdb, by="gene"))
 ```
 
 ### Read counting step
@@ -286,13 +290,16 @@ an experiment, and will be described in more detail below.
 **Note:** If it is desired to perform counting using multiple cores, one can use
 the *register* and *MulticoreParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
+Expect that the `summarizeOverlaps` call will take at least 30 minutes
+per file for a human RNA-seq file with 20 million reads. By sending
+the files to separate cores, one can speed up the entire counting process.
 
 ```{r}
 library("GenomicAlignments")
 ```
 
 ```{r}
-se <- summarizeOverlaps(features=exonsByGene, reads=bamfiles,
+se <- summarizeOverlaps(features=ebg, reads=bamfiles,
                         mode="Union",
                         singleEnd=FALSE,
                         ignore.strand=TRUE,
