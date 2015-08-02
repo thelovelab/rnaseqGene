@@ -296,6 +296,7 @@ the files to separate cores, one can speed up the entire counting process.
 
 ```{r}
 library("GenomicAlignments")
+library("BiocParallel")
 register(SerialParam())
 ```
 
