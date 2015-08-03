@@ -1321,7 +1321,7 @@ genomic space.  While the *results* function by default outputs a
 
 ```{r}
 (resGR <- results(dds, format="GRanges"))
-resGR$symbol <- convertIDs(names(resGR), "ENSEMBL", "SYMBOL", org.Hs.eg.db)
+resGR$symbol <- mapIds(org.Hs.eg.db, names(resGR), "SYMBOL", "ENSEMBL")
 ```
 
 We will use the `r Biocpkg("Gviz")` package for plotting the GRanges
