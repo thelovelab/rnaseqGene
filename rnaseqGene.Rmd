@@ -1258,40 +1258,35 @@ To get a list of all available key types, use:
 columns(org.Hs.eg.db)
 ```
 
-Converting IDs with the native functions from the *AnnotationDbi*
-package is a bit cumbersome, so we provide the following convenience
-function (without explaining how exactly it works):
+This is the organism annotation package ("org") for
+*Homo sapiens* ("Hs"), organized as an *AnnotationDbi*
+database package ("db"), using Entrez Gene IDs ("eg") as primary key.
+To get a list of all available key types, use:
 
 ```{r}
-convertIDs <- function( ids, from, to, db, ifMultiple=c("putNA", "useFirst")) {
-  stopifnot( inherits( db, "AnnotationDb" ) )
-  ifMultiple <- match.arg( ifMultiple )
-  suppressWarnings( selRes <- AnnotationDbi::select(
-    db, keys=ids, keytype=from, columns=c(from,to) ) )
-  if ( ifMultiple == "putNA" ) {
-    duplicatedIds <- selRes[ duplicated( selRes[,1] ), 1 ]
-    selRes <- selRes[ ! selRes[,1] %in% duplicatedIds, ]
-  }
-  return( selRes[ match( ids, selRes[,1] ), 2 ] )
-}
+columns(org.Hs.eg.db)
 ```
 
-This function takes a list of IDs as first argument and their key type
-as the second argument. The third argument is the key type we want to
-convert to, the fourth is the *AnnotationDb* object to use. Finally,
-the last argument specifies what to do if one source ID maps to
-several target IDs: should the function return an NA or simply the
-first of the multiple IDs? To convert the Ensembl IDs in the rownames
-of `res` to gene symbols and add them as a new column, we use:
+We can use the *mapIds* function to add invidual columns to our results
+table. To add the gene symbol and Entrez ID, we call *mapIds* twice:
 
 ```{r}
-res$hgnc_symbol <- convertIDs(row.names(res), "ENSEMBL", "SYMBOL", org.Hs.eg.db)
-res$entrezgene <- convertIDs(row.names(res), "ENSEMBL", "ENTREZID", org.Hs.eg.db)
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res),
+                     column="SYMBOL",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res),
+                     column="ENTREZID",
+                     keytype="ENSEMBL",
+                     multiVals="first")
 ```
 
 Now the results have the desired external gene ids:
+
 ```{r}
-resOrdered <- res[order(res$pvalue),]
+resOrdered <- res[order(res$padj),]
 head(resOrdered)
 ```
 
