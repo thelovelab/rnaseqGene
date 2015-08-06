@@ -770,7 +770,7 @@ library("ggplot2")
 ```
 
 ```{r ggplotpca, fig.width=6, fig.height=4.5}
-qplot(PC1, PC2, color=dex, shape=cell, data=data) +
+ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) + geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 ```
@@ -795,15 +795,15 @@ transformed counts:
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
 mds <- data.frame(cmdscale(sampleDistMatrix))
 mds <- cbind(mds, as.data.frame(colData(rld)))
-qplot(X1,X2,color=dex,shape=cell,data=mds)
+ggplot(mds, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
 
 And here from the *PoissonDistance*:
 
 ```{r mdspois, fig.width=6, fig.height=4.5}
-mds <- data.frame(cmdscale(samplePoisDistMatrix))
-mds <- cbind(mds, as.data.frame(colData(dds)))
-qplot(X1,X2,color=dex,shape=cell,data=mds)
+mdspois <- data.frame(cmdscale(samplePoisDistMatrix))
+mdspois <- cbind(mds, as.data.frame(colData(dds)))
+ggplot(mdspois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
 
 <a id="de"></a>
@@ -1043,7 +1043,7 @@ We can also make more customizable plots using the *ggplot* function from the
 data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
 ggplot(data, aes(x=dex, y=count, color=cell)) +
   scale_y_log10() + 
-  geom_point(position=position_jitter(width=.1,height=0))
+  geom_point(position=position_jitter(width=.1,height=0), size=3)
 ```
 
 Here we use a more structural arrangement instead of random jitter,
@@ -1060,8 +1060,7 @@ effect, so a more detailed plot would also show the cell lines.
 
 ```{r ggplotcountsgroup, fig.height=5}
 ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
-  scale_y_log10() + 
-  geom_point() + geom_line()
+  scale_y_log10() + geom_point(size=3) + geom_line()
 ```
 
 An "MA-plot" provides a useful overview for an experiment with a
