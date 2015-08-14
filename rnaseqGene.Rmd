@@ -1,6 +1,9 @@
 ---
-Author: Michael Love
-Date: March 27, 2015
+author: Michael I. Love, Simon Anders, Wolfgang Huber
+date: August 14, 2015
+title: "RNA-Seq workflow: gene-level exploratory analysis and differential expression"
+output: html_document
+bibliography: bibliography.bib
 ---
 
 <!-- rmarkdown v1 -->
@@ -95,14 +98,14 @@ GEO: [GSE52778](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778).
 
 ## Preparing count matrices
 
-As input, the *DESeq2* package expects count data as obtained,
-e.g., from RNA-Seq or another high-throughput sequencing experiment,
-in the form of a matrix of integer values. The value in the *i*-th row
-and the *j*-th column of the matrix tells how many reads have been
-mapped to gene *i* in sample *j*.  Analogously, for other types of
-assays, the rows of the matrix might correspond e.g., to binding
-regions (with ChIP-Seq) or peptide sequences (with quantitative mass
-spectrometry).
+As input, the *DESeq2* statistical method [@love2014] expects count
+data as obtained, e.g., from RNA-Seq or another high-throughput
+sequencing experiment, in the form of a matrix of integer values. The
+value in the *i*-th row and the *j*-th column of the matrix tells how
+many reads have been mapped to gene *i* in sample *j*.  Analogously,
+for other types of assays, the rows of the matrix might correspond
+e.g., to binding regions (with ChIP-Seq) or peptide sequences (with
+quantitative mass spectrometry).
 
 The count values must be raw counts of sequencing reads. This is
 important for *DESeq2*'s statistical model to hold, as only the
@@ -1528,4 +1531,6 @@ with all code used in the analysis.
 ```{r}
 sessionInfo()
 ```
+
+## References
 
