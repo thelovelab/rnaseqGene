@@ -5,11 +5,11 @@ Date: March 27, 2015
 
 <!-- rmarkdown v1 -->
 <!--
-%\VignetteEngine{knitr::knitr}
+%\VignetteEngine{knitr::rmarkdown}
 %\VignetteIndexEntry{RNA-Seq workflow at the gene level}
 -->
 
-<!-- to compile this: library("knitr"); knit2html("rnaseqGene.Rmd") -->
+<!-- to compile this: library("rmarkdown"); render("rnaseqGene.Rmd") -->
 
 <!--
      # a list of all required libraries:
@@ -33,6 +33,7 @@ Harvard School of Public Health, Boston, US;
 ```{r style, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
 library("BiocStyle")
 library("knitr")
+library("rmarkdown")
 options(width=100)
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE)
 ```
