@@ -64,8 +64,8 @@ analysis, and visually explore the results.
 
 We note that a number of other Bioconductor packages can also be used for
 statistical inference of differential expression at the gene level including
-`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`, `r Biocpkg("DSS")`,
-`r Biocpkg("limma")` and `r Biocpkg("EBSeq")`.
+`r Biocpkg("edgeR")`, `r Biocpkg("limma")`, `r Biocpkg("DSS")`, 
+`r Biocpkg("EBSeq")`, and `r Biocpkg("BaySeq")`.
 
 If you have questions about this workflow, please post them to the
 [Bioconductor support site](https://support.bioconductor.org/).
@@ -258,21 +258,27 @@ seqinfo(bamfiles[1])
 ### Defining gene models
 
 Next, we need to read in the gene model which will be used for
-counting reads. We will read the gene model from a
+counting reads/fragments. We will read the gene model from a
 [GTF file](http://www.ensembl.org/info/website/upload/gff.html), using
 *makeTxDbFromGFF* from the `r Biocpkg("GenomicFeatures")`
 package. GTF files can be downloaded from
 Ensembl's FTP site or other gene model repositories.
-A *TranscriptDb* object is a database which can be used to
+A *TxDb* object is a database which can be used to
 generate a variety of range-based objects, such as exons, transcripts,
-and genes. We will want to make a list of exons grouped by gene.
+and genes. We want to make a list of exons grouped by gene for
+counting read/fragments.
 
-There are other options for constructing a *TranscriptDB*.
+There are other options for constructing a *TxDb*.
 For the *known genes* track from the UCSC Genome Browser,
 one can use the pre-built Transcript DataBase:
 `r Biocannopkg("TxDb.Hsapiens.UCSC.hg19.knownGene")`.
-The *makeTxDbFromBiomart* function can be used to automatically
-pull a gene model from Biomart. 
+If the annotation file is accessible from
+`r Biocpkg("AnnotationHub")` (as is the case for the Ensembl genes),
+a pre-scanned GTF file can be imported using *makeTxDbFromGRanges*.
+Finally, the *makeTxDbFromBiomart* function can be used to automatically
+pull a gene model from Biomart.
+
+Here we will demonstrate loading from a GTF file:
 
 ```{r}
 library("GenomicFeatures")
@@ -298,10 +304,10 @@ After these preparations, the actual counting is easy. The function
 *summarizeOverlaps* from the `r Biocpkg("GenomicAlignments")`
 package will do this. This produces a *SummarizedExperiment*
 object, which contains a variety of information about
-an experiment, and will be described in more detail below.
+the experiment, and will be described in more detail below.
 
 **Note:** If it is desired to perform counting using multiple cores, one can use
-the *register* and *MulticoreParam* functions from the
+the *register* and *MulticoreParam* or *SnowParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
 Expect that the `summarizeOverlaps` call will take at least 30 minutes
 per file for a human RNA-seq file with 20 million reads. By sending
@@ -310,6 +316,12 @@ the files to separate cores, one can speed up the entire counting process.
 ```{r}
 library("GenomicAlignments")
 library("BiocParallel")
+```
+
+Here we specify to use one core, not multiple cores. We could have
+also skipped this line and it would also run in serial.
+
+```{r}
 register(SerialParam())
 ```
 
@@ -323,16 +335,18 @@ se <- summarizeOverlaps(features=ebg, reads=bamfiles,
 
 We specify a number of arguments besides the `features` and the
 `reads`. The `mode` argument describes what kind of read overlaps will
-be counted as a hit. These modes are shown in Figure 1 of the "Counting reads with
-summarizeOverlaps" vignette for the `r Biocpkg("GenomicAlignments")`
-package. Setting `singleEnd` to `FALSE` indicates that the experiment
-produced paired-end reads, and we want to count a pair of reads only once
-toward the read count for a gene.
+be counted. These modes are shown in Figure 1 of the
+"Counting reads with summarizeOverlaps" vignette for the `r
+Biocpkg("GenomicAlignments")` package. Setting `singleEnd` to `FALSE`
+indicates that the experiment produced paired-end reads, and we want
+to count a pair of reads (a fragment) only once toward the count
+for a gene. 
+
 In order to produce correct counts, it is important to know if the
 RNA-Seq experiment was strand-specific or not. This experiment was not
-strand-specific so we set `ignore.strand` to `TRUE`.
-The `fragments` argument can be used when `singleEnd=FALSE`
-to specify if unpaired reads should be counted (yes if `fragments=TRUE`).
+strand-specific so we set `ignore.strand` to `TRUE`.  The `fragments`
+argument can be used when `singleEnd=FALSE` to specify if unpaired
+reads should be counted (yes if `fragments=TRUE`).
 
 ### SummarizedExperiment
 
@@ -353,16 +367,17 @@ text(62.5,82.5,"colData")
 ```
 
 Here we show the component parts of a *SummarizedExperiment* object,
-and also its subclasses, such as the *DESeqDataSet* which is
+and the classes derived from it, such as the *DESeqDataSet* which is
 explained in the next section. The `assay(s)` (pink block) contains
-the matrix (or matrices) of summarized values, the `rowRanges` (blue
-block) contains information about the genomic ranges, and the
-`colData` (green block) contains information about the samples or
-experiments. The highlighted line in each block represents the first
-row (note that the first row of `colData` lines up with the first
-column of the `assay`.
+the matrix (or matrices) of data. In our case we have created a single
+matrix which contains the fragment counts for each gene and sample.
+The `rowRanges` (blue block) contains information about the genomic
+ranges, and the `colData` (green block) contains information about the
+samples or experiments. The highlighted line in each block represents
+the first row (note that the first row of `colData` lines up with the
+first column of the `assay`).
 
-This example code above actually only counts a small subset of reads
+This example code above actually only counted a small subset of fragments
 from the original experiment. Nevertheless, we
 can still investigate the resulting *SummarizedExperiment* by looking at
 the counts in the `assay` slot, the phenotypic data about the samples in
@@ -371,23 +386,40 @@ genes in the `rowRanges` slot.
 
 ```{r}
 se
+dim(se)
+assayNames(se)
 head(assay(se))
 colSums(assay(se))
-colData(se)
+```
+
+The `rowRanges` have their own accessor function:
+
+```{r}
 rowRanges(se)
 ```
 
 Note that the `rowRanges` slot is a *GRangesList*, which
 contains all the information about the exons for each gene, i.e., for each row
 of the count matrix. It also contains metadata about the construction
-of the gene model in the `metadata` slot.
+of the gene model in the `metadata` slot. Here we use a helpful R
+function, `str`, to display the metadata compactly:
 
 ```{r}
 str(metadata(rowRanges(se)))
 ```
 
+The `colData` also has its own accessor function:
+
+```{r}
+colData(se)
+```
+
 The `colData` slot, so far empty, should contain all the metadata.
-We hence assign our sample table to it:
+Because we used a column of `sampleTable` to produce the `bamfiles`
+vector, we know the columns of `se` are in the same order as the
+rows of `sampleTable`. We can assign the `sampleTable` as the
+`colData` of the summarized experiment, by converting
+it into a *DataFrame* and using the assignment function:
 
 ```{r}
 (colData(se) <- DataFrame(sampleTable))
@@ -395,32 +427,41 @@ We hence assign our sample table to it:
 
 ### Branching point
 
-At this point, we have counted the reads which overlap the genes in
-the gene model we specified. This is a branching point where we could
-use a variety of Bioconductor packages for exploration and
-differential expression of the counts, including
-`r Biocpkg("edgeR")`, `r Biocpkg("BaySeq")`,
-`r Biocpkg("DSS")`, `r Biocpkg("limma")` and `r Biocpkg("EBSeq")`.
-We will continue, using `r Biocpkg("DESeq2")`. The *SummarizedExperiment* object is
-all we need to start our analysis. In the following section we will
-show how to use it to create the data object used by `r Biocpkg("DESeq2")`.
+At this point, we have counted the fragments which overlap the genes
+in the gene model we specified. This is a branching point where we
+could use a variety of Bioconductor packages for exploration and
+differential expression of the count data, including
+`r Biocpkg("edgeR")`, `r Biocpkg("limma")`, `r Biocpkg("DSS")`, 
+`r Biocpkg("EBSeq")`, `r Biocpkg("BaySeq")`, and more.
+We will continue, using `r Biocpkg("DESeq2")`.
+The *SummarizedExperiment* object is all we
+need to start our analysis. In the following section we will show how
+to use it to create the data object used by *DESeq2*.
 
 <a id="construct"></a>
 
-## The *DESeqDataSet*, column metadata, and the design formula
+## The *DESeqDataSet*, sample information, and the design formula
 
 Bioconductor software packages often define and use a custom class for
-their data object, which makes sure that all the needed data slots are
+storing data, which makes sure that all the needed data slots are
 consistently provided and fulfill the requirements.  In addition,
 Bioconductor has general data classes (such as the
 *SummarizedExperiment*) that can be used to move data between
-packages.  In `r Biocpkg("DESeq2")`, the custom class is called
-*DESeqDataSet*. It is built on top of the *SummarizedExperiment* class
-(in technical terms, *DESeqDataSet* is a subclass), and it is easy
-to convert *SummarizedExperiment* instances into *DESeqDataSet* and vice versa.
-One of the main differences is that the `assay` slot is instead
-accessed using the *count* accessor, and the class enforces that the
-values in this matrix are non-negative integers.
+packages. Additionally, the core Bioconductor classes provide useful
+functionality: for example, subsetting or reordering the rows or
+columns of a *SummarizedExperiment* automatically subsets or reorders
+the associated *rowRanges* and *colData*, which can help to prevent
+accidentally sample swaps that would otherwise lead to spurious
+results. With *SummarizedExperiment* this is all taken care of behind
+the scenes.
+
+In *DESeq2*, the custom class is called *DESeqDataSet*. It is built on
+top of the *SummarizedExperiment* class, and it is easy to convert
+*SummarizedExperiment* objects into *DESeqDataSet* objects, which we
+show below.  One of the two main differences is that the `assay` slot is
+instead accessed using the *counts* accessor function, and the
+*DESeqDataSet* class enforces that the values in this matrix are
+non-negative integers.
 
 A second difference is that the *DESeqDataSet* has an associated
 *design formula*. The experimental design is specified at the
@@ -428,7 +469,7 @@ beginning of the analysis, as it will inform many of the *DESeq2*
 functions how to treat the samples in the analysis (one exception is
 the size factor estimation, i.e., the adjustment for differing library
 sizes, which does not depend on the design formula).  The design
-formula tells which variables in the column metadata table (`colData`)
+formula tells which columns in the sample information table (`colData`)
 specify the experimental design and how these factors should be used
 in the analysis.
 
@@ -436,27 +477,41 @@ The simplest design formula for differential expression would be
 `~ condition`, where `condition` is a column in `colData(dds)` which
 specifies which of two (or more groups) the samples belong to.  For
 the airway experiment, we will specify `~ cell + dex`, which
-means that we want to test for the effect of dexamethasone (the last
-factor), controlling for the effect of different cell line (the first
-factor).
+means that we want to test for the effect of dexamethasone (`dex`)
+controlling for the effect of different cell line (`cell`). We can see
+each of the columns just using the `$` directly on the
+*SummarizedExperiment* or *DESeqDataSet*:
 
-You can use R's formula notation to express any experimental design
-that can be described within an ANOVA-like framework.  Note that
-*DESeq2* uses the same formula notation as, for instance, the *lm*
-function of base R. If the question of interest is whether a fold
-change due to treatment is different across groups, interaction terms
-can be included using models such as
+```{r}
+se$cell
+se$dex
+```
+
+**Note:** it is prefered in R that the first level of a factor be the
+reference level (e.g. control, or untreated samples), so we can
+*relevel* the `dex` factor like so: 
+
+```{r}
+se$dex <- relevel(se$dex, "untrt")
+se$dex
+```
+
+For running *DESeq2* models, you can use R's formula notation to
+express any fixed-effects experimental design.
+Note that *DESeq2* uses the same formula notation as, for instance, the *lm*
+function of base R. If the research aim is to determine for which
+genes the effect of treatment is different across groups, then
+interaction terms can be included and tested using a design such as
 `~ group + treatment + group:treatment`. See the manual page for
-`?results` for examples of extracting contrasts from more complex
-designs such as these.
+`?results` for more examples. We will show how to use an interaction
+term to test for condition-specific changes over a time in a 
+[time series example](#time) below.
 
 In the following sections, we will demonstrate the construction of the
 *DESeqDataSet* from two starting points:
 
-* from a *SummarizedExperiment* object created by, e.g.,
-  *summarizeOverlaps* in the above example
-* more generally, from a count matrix and a column metadata table
-  which have been loaded into R 
+* from a *SummarizedExperiment* object 
+* from a count matrix and a sample information table
 
 For a full example of using the *HTSeq* Python package for read
 counting, please see the `r Biocexptpkg("pasilla")` vignette.  For an
@@ -471,8 +526,8 @@ sequencing data files associated with the Himes et al. paper,
 described above.  The steps we used to produce this object were
 equivalent to those you worked through in the previous sections,
 except that we used all the reads and all the genes. For more details
-on the exact steps used to create this object type
-`browseVignettes("airway")` into your R session.
+on the exact steps used to create this object, type
+`vignette("airway")` into your R session. 
 
 ```{r}
 data("airway")
@@ -506,13 +561,13 @@ We highly recommend keeping this information in a comma-separated
 value (CSV) or tab-separated value (TSV) file, which can be exported
 from an Excel spreadsheet, and the assign this to the `colData` slot,
 making sure that the rows correspond to the columns of the
-*SummarizedExperiment*. We made sure of this correspondence by
+*SummarizedExperiment*. We made sure of this correspondence earlier by
 specifying the BAM files using a column of the sample table.
 
 Once we have our fully annotated *SummarizedExperiment* object,
 we can construct a *DESeqDataSet* object from it, which will then form
-the starting point of the actual *DESeq2* package, described in the
-following sections. We add an appropriate design for the analysis.
+the starting point of the analysis.
+We add an appropriate design for the analysis:
 
 ```{r}
 library("DESeq2")
@@ -523,19 +578,9 @@ dds <- DESeqDataSet(se, design = ~ cell + dex)
 ```
 
 If we only wanted to perform transformations and exploratory data analysis
-we could use a `~ 1` for the design, but be careful, because a true
-experimental design, e.g. `~ condition` would need to be added
-later before differential expression (or else we would only be
-testing the intercept).
-
-Note that there are two alternative functions,
-*DESeqDataSetFromMatrix* and *DESeqDataSetFromHTSeq*, which allow you
-to get started in case you have your data not in the form of a
-*SummarizedExperiment* object, but either as a simple matrix of count
-values or as output files from the *htseq-count* script from the
-*HTSeq* Python package. 
-
-Below we demonstrate using *DESeqDataSetFromMatrix*.
+we could use a `~ 1` for the design, but we would need to remember to
+substitute a real design, e.g. `~ condition`, before we run *DESeq*
+for differential testing or else we would only be testing the intercept.
 
 ### Starting from count matrices
 
@@ -554,7 +599,7 @@ perhaps generated by an R function like *featureCounts* from the
 
 The information in a *SummarizedExperiment* object can be
 accessed with accessor functions. For example, to see the actual data,
-i.e., here, the read counts, we use the *assay* function. (The *head*
+i.e., here, the fragment counts, we use the *assay* function. (The *head*
 function restricts the output to the first few lines.)
 
 ```{r}
@@ -564,11 +609,11 @@ head(countdata)
 
 In this count matrix, each row represents an Ensembl gene, each column
 a sequenced RNA library, and the values give the raw numbers of
-sequencing reads that were mapped to the respective gene in each
-library. We also have metadata on each of the samples (the columns of the
-count matrix). If you've counted reads with some other software, you need to check at
-this step that the columns of the count matrix correspond to the rows
-of the column metadata.
+fragments that were uniquely assigned to the respective gene in each
+library. We also have information on each of the samples (the columns of the
+count matrix). If you've counted reads with some other software, it is
+very importnat to to check that the columns of the count matrix correspond to the rows
+of the sample information table. 
 
 ```{r}
 coldata <- colData(se)
@@ -577,16 +622,16 @@ coldata <- colData(se)
 We now have all the ingredients to prepare our data object in a form
 that is suitable for analysis, namely:
 
-* `countMatrix`: a table with the read counts
-* `coldata`: a table with metadata on the count matrix's columns
+* `countdata`: a table with the fragment counts
+* `coldata`: a table with information about the samples
 
-To now construct the data object from the matrix of counts and the
-metadata table, we use:
+To now construct the *DESeqDataSet* object from the matrix of counts and the
+sample information table, we use:
 
 ```{r}
 (ddsMat <- DESeqDataSetFromMatrix(countData = countdata,
-                                 colData = coldata,
-                                 design = ~ cell + dex))
+                                  colData = coldata,
+                                  design = ~ cell + dex))
 ```
 
 We will continue with the object generated from the
@@ -595,6 +640,20 @@ We will continue with the object generated from the
 <a id="eda"></a>
 
 ## Visually exploring the dataset
+
+### Pre-filtering the dataset
+
+Our count matrix with our *DESeqDataSet* contains many rows with only zeros, and
+additionally many rows with only a few fragments total. In
+order to reduce the size of the object, and to increase the speed of
+our functions, we can remove the rows which have no or nearly no
+information about the amount of gene expression. Here we remove rows
+of the *DESeqDataSet* which have no counts, or only a single count
+across all samples:
+
+```{r}
+dds <- dds[ rowSums(counts(dds)) > 1, ]
+```
 
 ### The rlog transformation
 
@@ -823,20 +882,6 @@ ggplot(mdspois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 
 ## Differential expression analysis
 
-It will be convenient to make sure that `untrt` is the first level in
-the `dex` factor, so that the default log2 fold changes are calculated
-as treated over untreated (by default R will chose the first
-alphabetical level, remember: computers don't know what to do unless
-you tell them). The function *relevel* achieves this:
-
-```{r}
-dds$dex <- relevel(dds$dex, "untrt")
-```
-
-In addition, if you have at any point subset the columns of the
-*DESeqDataSet* you should similarly call *droplevels* on the factors
-if the subsetting has resulted in some levels having 0 samples.
-
 ### Running the pipeline
 
 Finally, we are ready to run the differential expression pipeline.
@@ -926,7 +971,7 @@ about which set of genes are considered significant:
 * lower the false discovery rate threshold (the threshold on `padj` in
   the results table)
 * raise the log2 fold change threshold from 0 using the `lfcThreshold`
-  argument of *results*. See the *DESeq2* vignette for a demonstration
+  argument of *results*. See the `r Biocpkg("DESeq2")` vignette for a demonstration
   of the use of this argument.
 
 If we lower the false discovery rate threshold, we should also
@@ -1229,7 +1274,7 @@ stored as an attribute of the results object.
 
 ```{r filterthreshold}
 attr(res,"filterThreshold")
-plot(attr(res,"filterNumRej"),type="b",
+plot(attr(res,"filterNumRej"), type="b",
      xlab="quantiles of 'baseMean'",
      ylab="number of rejections")
 ```
