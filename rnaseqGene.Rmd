@@ -47,7 +47,7 @@ opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE)
 * [Building a DESeqDataSet](#construct)
 * [Exploratory analysis and visualization](#eda)
 * [Differential expression](#de)
-* [Diagnostic plots](#diagnostic)
+* [Plotting results](#plots)
 * [Annotation](#annotate)
 * [Accounting for unknown batches](#batch)
 * [Time series experiments](#time)
@@ -534,6 +534,14 @@ data("airway")
 se <- airway
 ```
 
+Again, we want to specify that `untrt` is the reference level for the
+dex variable:
+
+```{r}
+se$dex <- relevel(se$dex, "untrt")
+se$dex
+```
+
 We can quickly check the millions of fragments which uniquely aligned
 to the genes (the second argument of *round* tells how many decimal
 points to keep).
@@ -909,11 +917,11 @@ ggplot(mdspois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 
 ## Differential expression analysis
 
-### Running the pipeline
+### Running the differential expression pipeline
 
-Finally, we are ready to run the differential expression pipeline.
-With the data object prepared, the *DESeq2* analysis can now be run
-with a single call to the function *DESeq*:
+As we have already specified an experimental design when we created
+the *DESeqDataSet*, we can run the differential expression pipeline on
+the raw counts with a single call to the function *DESeq*:
 
 ```{r airwayDE}
 dds <- DESeq(dds)
@@ -923,11 +931,11 @@ This function will print out a message for the various steps it
 performs. These are described in more detail in the manual page for
 *DESeq*, which can be accessed by typing `?DESeq`. Briefly these are:
 the estimation of size factors (which control for differences in the
-library size of the sequencing experiments), the estimation of
-dispersion for each gene, and fitting a generalized linear model.
+sequencing depth of the samples), the estimation of
+dispersion values for each gene, and fitting a generalized linear model.
 
 A *DESeqDataSet* is returned which contains all the fitted
-information within it, and the following section describes how to
+parameters within it, and the following section describes how to
 extract out results tables of interest from this object.
 
 ### Building the results table
@@ -936,7 +944,8 @@ Calling *results* without any arguments will extract the estimated
 log2 fold changes and *p* values for the last variable in the design
 formula. If there are more than 2 levels for this variable, *results*
 will extract the results table for a comparison of the last level over
-the first level.
+the first level. This comparison is printed at the top of the output:
+`dex trt vs untrt`.
 
 ```{r}
 (res <- results(dds))
@@ -950,11 +959,11 @@ mcols(res, use.names=TRUE)
 ```
 
 The first column, `baseMean`, is a just the average of the normalized
-count values, dividing by size factors, taken over all samples. The
-remaining four columns refer to a specific contrast, namely the
+count values, dividing by size factors, taken over all samples in the
+*DESeqDataSet*.
+The remaining four columns refer to a specific contrast, namely the
 comparison of the `trt` level over the `untrt` level for the factor
-variable `dex`. See the help page for *results* (by typing `?results`)
-for information on how to obtain other contrasts.
+variable `dex`. We will find out below how to obtain other contrasts.
 
 The column `log2FoldChange` is the effect size estimate. It tells us
 how much the gene's expression seems to have changed due to treatment
@@ -971,15 +980,15 @@ test. The purpose of a test for differential expression is to test
 whether the data provides sufficient evidence to conclude that this
 value is really different from zero. *DESeq2* performs for each gene a
 *hypothesis test* to see whether evidence is sufficient to decide
-against the *null hypothesis* that there is no effect of the treatment
+against the *null hypothesis* that there is zero effect of the treatment
 on the gene and that the observed difference between treatment and
 control was merely caused by experimental variability (i.e., the type
-of variability that you can just as well expect between different
+of variability that you can expect between different
 samples in the same treatment group). As usual in statistics, the
 result of this test is reported as a *p* value, and it is found in the
-column `pvalue`. (Remember that a *p* value indicates the probability
+column `pvalue`. Remember that a *p* value indicates the probability
 that a fold change as strong as the observed one, or even stronger,
-would be seen under the situation described by the null hypothesis.)
+would be seen under the situation described by the null hypothesis.
 
 We can also summarize the results with the following line of code,
 which reports some additional information, which will be covered in
@@ -998,8 +1007,7 @@ about which set of genes are considered significant:
 * lower the false discovery rate threshold (the threshold on `padj` in
   the results table)
 * raise the log2 fold change threshold from 0 using the `lfcThreshold`
-  argument of *results*. See the `r Biocpkg("DESeq2")` vignette for a demonstration
-  of the use of this argument.
+  argument of *results*
 
 If we lower the false discovery rate threshold, we should also
 tell this value to `results()`, so that the function will use an
@@ -1010,32 +1018,44 @@ res.05 <- results(dds, alpha=.05)
 table(res.05$padj < .05)
 ```
 
+If we want to raise the log2 fold change threshold, so that we test
+for genes which show more substantial changes due to treatment, we
+simply supply a value on the log2 scale. For example, by specifying
+`lfcThreshold=1`, we test for genes which show significant effects of
+treatment which are more than doubling or less than halving, because
+\\( 2^1 = 2 \\).
+
+```{r}
+resLFC1 <- results(dds, lfcThreshold=1)
+table(resLFC1$padj < 0.1)
+```
+
 Sometimes a subset of the *p* values in `res` will be `NA` ("not
 available"). This is *DESeq*'s way of reporting that all counts for
 this gene were zero, and hence not test was applied. In addition, *p*
 values can be assigned `NA` if the gene was excluded from analysis
 because it contained an extreme count outlier. For more information,
-see the outlier detection section of the vignette.
+see the outlier detection section of the *DESeq2* vignette.
 
-If you use *DESeq2* results in published research, please cite our
-methods paper which you can find by typing `citation("DESeq2")`
-(and the same holds for other Bioconductor packages).
-This helps to support the individuals who put time into open source
-software for genomic analysis.
+If you use the results from an R analysis package in published
+research, you can find the proper citation for the software by typing
+`citation("pkgName")`, where you would substitute the name of the
+package for `pkgName`.  Citing methods papers helps to support and
+reward the individuals who put time into open source software for
+genomic data analysis.
 
 ### Other comparisons
 
 In general, the results for a comparison of any two levels of a
 variable can be extracted using the `contrast` argument to
 *results*. The user should specify three values: the name of the
-variable, the name of the level in the numerator, and the name of the
-level in the denominator.  Here we extract results for the log2 of the
+variable, the name of the level for the numerator, and the name of the
+level for the denominator. Here we extract results for the log2 of the
 fold change of one cell line over another:
 
 ```{r}
 results(dds, contrast=c("cell", "N061011", "N61311"))
 ```
-
 
 If results for an interaction term are desired, the `name`
 argument of *results* should be used. Please see the 
@@ -1043,12 +1063,11 @@ help for the *results* function for more details.
 
 ### Multiple testing
 
-Novices in high-throughput biology often assume that thresholding
-these *p* values at a low value, say 0.05, as is often done in other
-settings, would be appropriate -- but it is not. We briefly explain
-why:
-
-There are `r sum(res$pvalue < .05, na.rm=TRUE)` genes with a *p* value
+In high-throughput biology, we are careful to not use the *p* values
+directly as evidence against the null, but to correct for
+*multiple testing*. What would happen if we were to simply threshold
+the *p* values at a low value, say 0.05? There are
+`r sum(res$pvalue < .05, na.rm=TRUE)` genes with a *p* value
 below 0.05 among the `r sum(!is.na(res$pvalue))` genes, for which the
 test succeeded in reporting a *p* value:
 
@@ -1073,12 +1092,17 @@ contain up to
 *DESeq2* uses the Benjamini-Hochberg (BH) adjustment as described in
 the base R *p.adjust* function; in brief, this method calculates for
 each gene an adjusted *p* value which answers the following question:
-if one called significant all genes with a *p* value less than or
-equal to this gene's *p* value threshold, what would be the fraction
-of false positives (the *false discovery rate*, FDR) among them (in
-the sense of the calculation outlined above)? These values, called the
+if one called significant all genes with an adjusted *p* value less than or
+equal to this gene's adjusted *p* value threshold, what would be the fraction
+of false positives (the *false discovery rate*, FDR) among them, in
+the sense of the calculation outlined above? These values, called the
 BH-adjusted *p* values, are given in the column `padj` of the `res`
 object.
+
+The FDR is a useful statistic for many high-throughput
+experiments, as we are often interested in reporting or focusing on a
+set of interesting genes, and we would like to put an upper bound the
+percent of false positives in this set. 
 
 Hence, if we consider a fraction of 10% false positives acceptable,
 we can consider all genes with an adjusted *p* value below 10% = 0.1
@@ -1090,26 +1114,22 @@ sum(res$padj < 0.1, na.rm=TRUE)
 
 We subset the results table to these genes and then sort it by the
 log2 fold change estimate to get the significant genes with the
-strongest down-regulation.
+strongest down-regulation:
 
 ```{r}
 resSig <- subset(res, padj < 0.1)
-head(resSig[ order( resSig$log2FoldChange ), ])
+head(resSig[ order(resSig$log2FoldChange), ])
 ```
 
-...and with the strongest upregulation. The *order* function gives
-the indices in increasing order, so a simple way to ask for decreasing
-order is to add a `-` sign. Alternatively, you can use the argument
-`decreasing=TRUE`.
-
+...and with the strongest up-regulation:
 
 ```{r}
-head(resSig[ order( -resSig$log2FoldChange ), ])
+head(resSig[ order(resSig$log2FoldChange, decreasing=TRUE), ])
 ```
 
-<a id="diagnostic"></a>
+<a id="plots"></a>
 
-## Diagnostic plots
+## Plotting results
 
 A quick way to visualize the counts for a particular gene is to use
 the *plotCounts* function, which takes as arguments the
@@ -1121,7 +1141,7 @@ topGene <- rownames(res)[which.min(res$padj)]
 plotCounts(dds, gene=topGene, intgroup=c("dex"))
 ```
 
-We can also make more customizable plots using the *ggplot* function from the
+We can also make custom plots using the *ggplot* function from the
 `r CRANpkg("ggplot2")` package:
 
 ```{r ggplotcountsjitter, fig.height=5}
@@ -1132,7 +1152,7 @@ ggplot(data, aes(x=dex, y=count, color=cell)) +
 ```
 
 Here we use a more structural arrangement instead of random jitter,
-and color by the treatment.
+and color by the treatment:
 
 ```{r ggplotcountsdot, fig.height=5}
 ggplot(data, aes(x=dex, y=count, fill=dex)) +
@@ -1141,59 +1161,67 @@ ggplot(data, aes(x=dex, y=count, fill=dex)) +
 ```
 
 Note that the *DESeq* test actually takes into account the cell line
-effect, so a more detailed plot would also show the cell lines. 
+effect, so a more accurate plot would also show lines between samples
+from the same cell line:
 
 ```{r ggplotcountsgroup, fig.height=5}
 ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
   scale_y_log10() + geom_point(size=3) + geom_line()
 ```
 
-An "MA-plot" provides a useful overview for an experiment with a
+An *MA-plot* provides a useful overview for an experiment with a
 two-group comparison.  The log2 fold change for a particular
 comparison is plotted on the y-axis and the average of the counts
 normalized by size factor is shown on the x-axis ("M" for minus,
 because a log ratio is equal to log minus log, and "A" for average).
 
-```{r plotma}
+```{r plotma, fig.width=5, fig.height=5}
 plotMA(res, ylim=c(-5,5))
 ```
 
-Each gene is represented with a dot. Genes with an adjusted $p$ value
+Each gene is represented with a dot. Genes with an adjusted *p* value
 below a threshold (here 0.1, the default) are shown in red.  The
 *DESeq2* package incorporates a prior on log2 fold changes, resulting
 in moderated log2 fold changes from genes with low counts and highly
 variable counts, as can be seen by the narrowing of spread of points
-on the left side of the plot.  This plot demonstrates that only genes
+on the left side of the plot. This plot demonstrates that only genes
 with a large average normalized count contain sufficient information
 to yield a significant call.
+
+We can also make the MA-plot for the results table in which we raised
+the log2 fold change threshold:
+
+```{r plotmalfc, fig.width=5, fig.height=5}
+plotMA(resLFC1, ylim=c(-5,5))
+```
 
 We can label individual points on the MA plot as well. Here we use the
 *with* R function to plot a circle and text for a selected row of the
 results object. Within the *with* function, only the `baseMean` and
 `log2FoldChange` values for the selected rows of `res` are used.
 
-```{r plotma2}
-plotMA(res, ylim=c(-5,5))
-with(res[topGene, ], {
+```{r plotmalabel, fig.width=5, fig.height=5}
+plotMA(resLFC1, ylim=c(-5,5))
+topGene <- rownames(resLFC1)[which.min(resLFC1$padj)]
+with(resLFC1[topGene, ], {
   points(baseMean, log2FoldChange, col="dodgerblue", cex=2, lwd=2)
   text(baseMean, log2FoldChange, topGene, pos=2, col="dodgerblue")
 })
 ```
 
 Whether a gene is called significant depends not only on its LFC but
-also on its within-group variability, which *DESeq2* quantifies as the
-*dispersion*. For strongly expressed genes, the dispersion can be
+also on its within-group variability, which *DESeq2* internally
+quantifies using a parameter called *dispersion*.
+For strongly expressed genes, the dispersion can be
 understood as a squared coefficient of variation: a dispersion value
 of 0.01 means that the gene's expression tends to differ by typically
 \\(\sqrt{0.01} = 10\%\\) between samples of the same treatment group. For
 weak genes, the Poisson noise is an additional source of noise.
 
-<!-- add this back once you turn off transparency in plotDispEsts
-
 The function *plotDispEsts* visualizes *DESeq2*'s dispersion
 estimates: 
 
-```{r plotdispests}
+```{r plotdispests, fig.width=5, fig.height=5}
 plotDispEsts(dds)
 ```
 
@@ -1204,23 +1232,22 @@ strongly around their true values. Therefore, we fit the red trend
 line, which shows the dispersions' dependence on the mean, and then
 shrink each gene's estimate towards the red line to obtain the final
 estimates (blue points) that are then used in the hypothesis test. The
-blue circles above the main "cloud" of points are genes which have
+blue circles above the main cloud of points are genes which have
 high gene-wise dispersion estimates which are labelled as dispersion
 outliers. These estimates are therefore not shrunk toward the fitted
 trend line.
 
--->
-
 Another useful diagnostic plot is the histogram of the *p* values.
 
-```{r histpvalue}
-hist(res$pvalue, breaks=20, col="grey50", border="white")
+```{r histpvalue, fig.width=5, fig.height=5}
+hist(res$pvalue, breaks=0:20/20, col="grey50", border="white")
 ```
 
-This plot becomes a bit smoother by excluding genes with very small counts:
+This plot becomes smoother by excluding genes with very small counts,
+which generate the spikes in the original plot:
 
-```{r histpvalue2}
-hist(res$pvalue[res$baseMean > 1], breaks=20, col="grey50", border="white")
+```{r histpvalue2, fig.width=5, fig.height=5}
+hist(res$pvalue[res$baseMean > 1], breaks=0:20/20, col="grey50", border="white")
 ```
 
 ## Gene clustering
@@ -1246,7 +1273,7 @@ samples. Hence, we center each genes' values across samples,
 and plot a heatmap. We provide the column side colors to help identify
 the treated samples (in blue) from the untreated samples (in grey).
 
-```{r genescluster}
+```{r genescluster, fig.height=9}
 mat <- assay(rld)[ topVarGenes, ]
 mat <- mat - rowMeans(mat)
 df <- as.data.frame(colData(rld)[,c("cell","dex")])
