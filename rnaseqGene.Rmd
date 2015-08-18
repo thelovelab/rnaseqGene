@@ -1213,34 +1213,6 @@ with(resLFC1[topGene, ], {
 })
 ```
 
-Whether a gene is called significant depends not only on its LFC but
-also on its within-group variability, which *DESeq2* internally
-quantifies using a parameter called *dispersion*.
-For strongly expressed genes, the dispersion can be
-understood as a squared coefficient of variation: a dispersion value
-of 0.01 means that the gene's expression tends to differ by typically
-\\(\sqrt{0.01} = 10\%\\) between samples of the same treatment group. For
-weak genes, the Poisson noise is an additional source of noise.
-
-The function *plotDispEsts* visualizes *DESeq2*'s dispersion
-estimates: 
-
-```{r plotdispests}
-plotDispEsts(dds)
-```
-
-The black points are the dispersion estimates for each gene as
-obtained by considering the information from each gene
-separately. Unless one has many samples, these values fluctuate
-strongly around their true values. Therefore, we fit the red trend
-line, which shows the dispersions' dependence on the mean, and then
-shrink each gene's estimate towards the red line to obtain the final
-estimates (blue points) that are then used in the hypothesis test. The
-blue circles above the main cloud of points are genes which have
-high gene-wise dispersion estimates which are labelled as dispersion
-outliers. These estimates are therefore not shrunk toward the fitted
-trend line.
-
 Another useful diagnostic plot is the histogram of the *p* values.
 
 ```{r histpvalue}
