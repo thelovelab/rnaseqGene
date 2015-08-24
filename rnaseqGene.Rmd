@@ -69,6 +69,14 @@ statistical inference of differential expression for RNA-seq at the gene level i
 the voom method [@Law2014Voom], `r Biocpkg("DSS")` [@Wu2013New], 
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq], and `r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq].
 
+The packages used in this workflow (which are loaded with the
+*library* function) can be installed by following the
+[Bioconductor package installation instructions](http://bioconductor.org/install/#install-bioconductor-packages).
+Some R packages used here are not Bioconductor packages, but general-purpose
+R packages hosted on CRAN (we will mention which ones are hosted on CRAN).
+CRAN packages can also be installed using *biocLite*, or by using
+*install.packages*.
+
 If you have questions about this workflow, please post them to the
 [Bioconductor support site](https://support.bioconductor.org/).
 If the questions concern a specific package, you can tag the post with the name of the package,
@@ -782,7 +790,7 @@ sampleDists
 ```
 
 We visualize the distances in a heatmap, using the function
-*pheatmap* from the `r CRANpkg("pheatmap")` package.
+*pheatmap* from the `r CRANpkg("pheatmap")` package hosted on CRAN.
 
 ```{r}
 library("pheatmap")
@@ -797,7 +805,8 @@ Otherwise the *pheatmap* function would assume that the matrix contains
 the data values themselves, and would calculate distances between the
 rows/columns of the distance matrix, which is not desired.
 We also manually specify a blue color palette using the
-*colorRampPalette* function from the `r CRANpkg("RColorBrewer")` package.
+*colorRampPalette* function from the `r CRANpkg("RColorBrewer")`
+package hosted on CRAN.
 
 ```{r distheatmap, fig.width=6, fig.height=4.5}
 sampleDistMatrix <- as.matrix( sampleDists )
@@ -815,8 +824,9 @@ contain treatment type and patient number instead of sample ID, so
 that we have all this information in view when looking at the heatmap.
 
 Another option for calculating sample distances is to use the
-*Poisson Distance* [@Witten2011Classification], implemented in the CRAN package
-`r CRANpkg("PoiClaClu")`. This measure of dissimilarity between counts
+*Poisson Distance* [@Witten2011Classification], implemented in the
+`r CRANpkg("PoiClaClu")` package hosted on CRAN.
+This measure of dissimilarity between counts
 also takes the inherent variance
 structure of counts into consideration when calculating the distances
 between samples. The *PoissonDistance* function takes the original
@@ -863,8 +873,9 @@ plotPCA(rld, intgroup = c("dex", "cell"))
 Here, we have used the function *plotPCA* which comes with *DESeq2*.
 The two terms specified by `intgroup` are the interesting groups for
 labeling the samples; they tell the function to use them to choose
-colors. We can also build the PCA plot from scratch using
-`r CRANpkg("ggplot2")` [@Wickham2009Ggplot2]. This is done by asking the *plotPCA* function
+colors. We can also build the PCA plot from scratch using the
+`r CRANpkg("ggplot2")` package [@Wickham2009Ggplot2] hosted on CRAN.
+This is done by asking the *plotPCA* function
 to return the data used for plotting rather than building the plot.
 See the *ggplot2* [documentation](http://docs.ggplot2.org/current/)
 for more details on using *ggplot*.
