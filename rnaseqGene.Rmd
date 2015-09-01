@@ -2,13 +2,10 @@
 date: August 18, 2015
 output: html_document
 bibliography: bibliography.bib
+vignette: >
+  %\VignetteIndexEntry{RNA-Seq workflow at the gene level}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
-
-<!-- rmarkdown v1 -->
-<!--
-%\VignetteEngine{knitr::rmarkdown}
-%\VignetteIndexEntry{RNA-Seq workflow at the gene level}
--->
 
 <!-- to compile this: library("rmarkdown"); render("rnaseqGene.Rmd") -->
 
