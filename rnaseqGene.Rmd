@@ -93,11 +93,16 @@ experiment and raw data are provided below:
 
 # Preparing count matrices
 
-As input, the count-based statistical methods such as *DESeq2*,
-*edgeR*, *DSS* and others expect input data
-as obtained, e.g., from RNA-Seq or another high-throughput
-sequencing experiment, in the form of a matrix of integer values. The
-value in the *i*-th row and the *j*-th column of the matrix tells how
+As input, the count-based statistical methods, such as
+`r Biocpkg("DESeq2")` [@Love2014Moderated],
+`r Biocpkg("edgeR")` [@Robinson2009EdgeR],
+`r Biocpkg("limma")` with the voom method [@Law2014Voom],
+`r Biocpkg("DSS")` [@Wu2013New], 
+`r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
+`r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq],
+expect input data as obtained, e.g., from RNA-Seq or another high-throughput
+sequencing experiment, in the form of a matrix of integer values.
+The value in the *i*-th row and the *j*-th column of the matrix tells how
 many reads (or fragments, for paired-end RNA-seq) can be uniquely
 assigned to gene *i* in sample *j*.  Analogously,
 for other types of assays, the rows of the matrix might correspond
@@ -444,9 +449,11 @@ At this point, we have counted the fragments which overlap the genes
 in the gene model we specified. This is a branching point where we
 could use a variety of Bioconductor packages for exploration and
 differential expression of the count data, including
-`r Biocpkg("edgeR")` [@Robinson2009EdgeR], `r Biocpkg("limma")` with
-the voom method [@Law2014Voom], `r Biocpkg("DSS")` [@Wu2013New], 
-`r Biocpkg("EBSeq")` [@Leng2013EBSeq], and `r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq].
+`r Biocpkg("edgeR")` [@Robinson2009EdgeR],
+`r Biocpkg("limma")` with the voom method [@Law2014Voom],
+`r Biocpkg("DSS")` [@Wu2013New],
+`r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
+`r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq].
 We will continue, using `r Biocpkg("DESeq2")` [@Love2014Moderated].
 The *SummarizedExperiment* object is all we
 need to start our analysis. In the following section we will show how
