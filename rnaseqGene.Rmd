@@ -1044,7 +1044,7 @@ for genes that show more substantial changes due to treatment, we
 simply supply a value on the log2 scale. For example, by specifying
 `lfcThreshold=1`, we test for genes that show significant effects of
 treatment on gene counts more than doubling or less than halving, because
-\(2^1 = 2\) and \( 2^{-1} = 1/2 \).
+\(2^1 = 2, \quad 2^{-1} = \frac{1}{2} \).
 
 ```{r}
 resLFC1 <- results(dds, lfcThreshold=1)
