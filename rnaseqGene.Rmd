@@ -69,7 +69,7 @@ The packages used in this workflow that are loaded with the
 If you have questions about this workflow, please post them to the
 [Bioconductor support site](https://support.bioconductor.org/).
 If the questions concern a specific package, you can tag the post with the name of the package,
-or for general questions about the workflow, tag the post with `deseq2`. Note the
+or for general questions about the workflow, tag the post with `rnaseqgene`. Note the
 [posting guide](http://www.bioconductor.org/help/support/posting-guide/)
 for crafting an optimal question for the support site.
 
