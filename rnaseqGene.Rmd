@@ -991,7 +991,7 @@ how much the gene's expression seems to have changed due to treatment
 with dexamethasone in comparison to untreated samples.  This value is
 reported on a logarithmic scale to base 2: for example, a log2 fold
 change of 1.5 means that the gene's expression is increased by a
-multiplicative factor of \(2^1.5 \approx 2.82\).
+multiplicative factor of \(2^{1.5} \approx 2.82\).
 
 Of course, this estimate has an uncertainty associated with it, which
 is available in the column `lfcSE`, the standard error estimate for
@@ -1044,7 +1044,7 @@ for genes that show more substantial changes due to treatment, we
 simply supply a value on the log2 scale. For example, by specifying
 `lfcThreshold=1`, we test for genes that show significant effects of
 treatment on gene counts more than doubling or less than halving, because
-\(2^1 = 2\) and \(2^{-1} = \frac{1}{2}\).
+\(2^1 = 2\) and \( 2^{-1} = 1/2 \).
 
 ```{r}
 resLFC1 <- results(dds, lfcThreshold=1)
