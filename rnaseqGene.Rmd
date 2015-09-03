@@ -3,7 +3,7 @@ date: September 2, 2015
 output: html_document
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{RNA-Seq workflow at the gene level}
+  %\VignetteIndexEntry{RNA-seq workflow at the gene level}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
@@ -19,7 +19,7 @@ vignette: >
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 
-# RNA-Seq workflow: gene-level exploratory analysis and differential expression 
+# RNA-seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2], Vladislav Kim [3], Wolfgang Huber [3]
 
@@ -52,7 +52,7 @@ opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE, fig.width=5, fig
 
 # Introduction
 
-Here we walk through an end-to-end gene-level RNA-Seq differential
+Here we walk through an end-to-end gene-level RNA-seq differential
 expression workflow using Bioconductor packages.  We will start from
 the FASTQ files, show how these were aligned to the reference genome,
 and prepare a count matrix which tallies the number of RNA-seq
@@ -76,7 +76,7 @@ for crafting an optimal question for the support site.
 ## Experimental data
 
 The data used in this workflow is stored in the
-`r Biocexptpkg("airway")` package that summarizes an RNA-Seq experiment
+`r Biocexptpkg("airway")` package that summarizes an RNA-seq experiment
 wherein airway smooth muscle cells were treated with dexamethasone, a synthetic
 glucocorticoid steroid with anti-inflammatory effects [@Himes2014RNASeq].
 Glucocorticoids are used, for example, in asthma patients to reduce
@@ -100,11 +100,11 @@ As input, the count-based statistical methods, such as
 `r Biocpkg("DSS")` [@Wu2013New], 
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
 `r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq],
-expect input data as obtained, e.g., from RNA-Seq or another high-throughput
+expect input data as obtained, e.g., from RNA-seq or another high-throughput
 sequencing experiment, in the form of a matrix of integer values.
 The value in the *i*-th row and the *j*-th column of the matrix tells how
-many reads (or fragments, for paired-end RNA-seq) can be uniquely
-assigned to gene *i* in sample *j*.  Analogously,
+many reads (or fragments, for paired-end RNA-seq) have been
+unambiguously assigned to gene *i* in sample *j*.  Analogously,
 for other types of assays, the rows of the matrix might correspond
 e.g., to binding regions (with ChIP-Seq), species of bacteria (with
 metagenomic datasets), or peptide sequences (with
@@ -120,7 +120,7 @@ designed to account for library size differences internally.
 
 ## Aligning reads to a reference genome
 
-The computational analysis of an RNA-Seq experiment begins earlier:
+The computational analysis of an RNA-seq experiment begins earlier:
 we first obtain a set of FASTQ files that
 contain the nucleotide sequence of each read and a quality score at
 each position.  These reads must first be aligned to a reference
@@ -231,7 +231,7 @@ features, e.g. a GFF3 or GTF file specifying the gene models.
 The following tools can be used generate count matrices,
 *summarizeOverlaps* [@Lawrence2013Software],
 *featureCounts* [@Liao2014FeatureCounts],
-or *htseq-count* [@Anders2014HTSeq]:
+or *htseq-count* [@Anders2015HTSeqa]:
 
 function            | package                                              | framework      | output                 | *DESeq2* input function
 --------------------|------------------------------------------------------|----------------|------------------------|-------------------------
@@ -359,7 +359,7 @@ to count a pair of reads (a fragment) only once toward the count
 for a gene. 
 
 In order to produce correct counts, it is important to know if the
-RNA-Seq experiment was strand-specific or not. This experiment was not
+RNA-seq experiment was strand-specific or not. This experiment was not
 strand-specific so we set `ignore.strand` to `TRUE`.  The `fragments`
 argument can be used when `singleEnd=FALSE` to specify if unpaired
 reads should be counted (yes if `fragments=TRUE`).
@@ -607,6 +607,7 @@ dds <- DESeqDataSet(se, design = ~ cell + dex)
 ```
 
 If we only wanted to perform transformations and exploratory data analysis
+(as explained later in this workflow)
 we could use a `~ 1` for the design, but we would need to remember to
 substitute a real design, e.g. `~ condition`, before we run *DESeq*
 for differential testing or else we would only be testing the intercept.
@@ -702,7 +703,7 @@ components analysis* (PCA), work best for data that generally has the
 same range of variance at different ranges of the mean values. When
 the expected amount of variance is approximately the same across
 different mean values, the data is said to be *homoskedastic*.  For
-RNA-Seq raw counts, however, the variance grows with the mean.  For
+RNA-seq raw counts, however, the variance grows with the mean.  For
 example, if one performs PCA directly on a matrix of
 size-factor-normalized read counts, the result typically depends only
 on the few most strongly expressed genes because they show the largest
@@ -782,7 +783,7 @@ information about differential expression.
 
 ## Sample distances
 
-A useful first step in an RNA-Seq analysis is often to assess overall
+A useful first step in an RNA-seq analysis is often to assess overall
 similarity between samples: Which samples are similar to each other,
 which are different? Does this fit to the expectation from the
 experiment's design?
@@ -913,8 +914,6 @@ From the PCA plot, we see that the differences between cells (the
 different plotting shapes) are considerable, though not stronger than the differences due to
 treatment with dexamethasone (red vs blue color). This shows why it will be important to
 account for this in differential testing by using a paired design
-
-
 ("paired", because each dex treated sample is paired with one
 untreated sample from the *same* cell line). We are already set up for
 this design by assigning the formula `~ cell + dex` earlier.
@@ -1288,7 +1287,7 @@ expression.
 
 ## Independent filtering
 
-The MA plot highlights an important property of RNA-Seq data.  For
+The MA plot highlights an important property of RNA-seq data.  For
 weakly expressed genes, we have no chance of seeing differential
 expression, because the low read counts suffer from such high Poisson
 noise that any biological effect is drowned in the uncertainties from
@@ -1576,7 +1575,7 @@ to find those genes that react in a condition-specific manner over
 time, compared to a set of baseline samples.
 Here we demonstrate a basic time course analysis with the
  `r Biocexptpkg("fission")` data package,
-that contains gene counts for an RNA-Seq time course of fission
+that contains gene counts for an RNA-seq time course of fission
 yeast [@Leong2014Global]. The yeast were exposed to oxidative stress, and half of the
 samples contain a deletion of the gene *atf21*.
 We use a design formula that models the strain difference at time 0,
