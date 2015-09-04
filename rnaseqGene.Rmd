@@ -21,7 +21,7 @@ vignette: >
 
 # RNA-seq workflow: gene-level exploratory analysis and differential expression 
 
-Michael Love [1], Simon Anders [2], Vladislav Kim [3], Wolfgang Huber [3]
+Michael Love [1], Simon Anders [2,3], Vladislav Kim [3], Wolfgang Huber [3]
 
 [1] Department of Biostatistics, Dana-Farber Cancer Institute and
 Harvard School of Public Health, Boston, US; 
@@ -145,7 +145,12 @@ directory called `files` with each line containing an identifier for
 each experiment, and we have all the FASTQ files in a subdirectory
 `fastq`. If you have downloaded the FASTQ files from the
 Sequence Read Archive, the identifiers would be SRA run IDs,
-e.g. `SRR1039520`. We have also created a subdirectory, `aligned`,
+e.g. `SRR1039520`. You should have two files for a paired-end
+experiment for each ID, `fastq/SRR1039520_1.fastq1` and
+`fastq/SRR1039520_2.fastq`, which give the first and second read for
+the paired-end fragments. If you have performed a single-end
+experiment, you would only have one file per ID.
+We have also created a subdirectory, `aligned`,
 where STAR will output its alignment files.
 
 ```
@@ -154,10 +159,13 @@ for f in `cat files`; do STAR --genomeDir ../STAR/ENSEMBL.homo_sapiens.release-7
 --runThreadN 12 --outFileNamePrefix aligned/$f.; done
 ```
 
-[SAMtools](http://samtools.sourceforge.net/) [@Li2009Sequence] was used to generate BAM files.
+[SAMtools](http://www.htslib.org/doc/samtools.html) [@Li2009Sequence]
+was used to generate BAM files. The `-@` flag can be used to allocate
+additional threads.
 
 ```
-cat files | parallel -j 7 samtools view -bS aligned/{}.Aligned.out.sam -o aligned/{}.bam
+for f in `cat files`; do samtools view -bS aligned/$f.Aligned.out.sam \
+-o aligned/$f.bam; done
 ```
 
 The BAM files for a number of sequencing runs can then be used to
@@ -239,6 +247,7 @@ function            | package                                              | fra
 *featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
 *htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | files                  | *DESeqDataSetFromHTSeq* 
 
+We now proceed using the *summarizeOverlaps* method of counting.
 Using the `Run` column in the sample table, we construct the full
 paths to the files we want to perform the counting operation on:
 
@@ -263,6 +272,10 @@ bamfiles <- BamFileList(filenames, yieldSize=2000000)
 in the annotation you use are consistent with the chromosome names of
 the reference used for read alignment. Otherwise, the scripts might
 fail to count any reads to features due to the mismatching names.
+For example, a common mistake is when the alignment files contain
+chromosome names in the style of `1` and the gene annotation in the
+style of `chr1`, or the other way around. See the *seqlevelsStyle*
+function in the `r Biocpkg("GenomeInfoDb")` package for solutions.
 We can check the chromosome names (here called "seqnames")
 in the alignment files like so:
 
@@ -1211,7 +1224,10 @@ below a threshold (here 0.1, the default) are shown in red.  The
 *DESeq2* package incorporates a prior on log2 fold changes, resulting
 in moderated log2 fold changes from genes with low counts and highly
 variable counts, as can be seen by the narrowing of spread of points
-on the left side of the plot. This plot demonstrates that only genes
+on the left side of the plot.
+For a detailed explanation of the rationale of moderated fold changes,
+please see the *DESeq2* paper [@Love2014Moderated].
+This plot demonstrates that only genes
 with a large average normalized count contain sufficient information
 to yield a significant call.
 
