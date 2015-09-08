@@ -940,17 +940,17 @@ compute the MDS plot for the distances calculated from the *rlog*
 transformed counts:
 
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
-mds <- data.frame(cmdscale(sampleDistMatrix))
-mds <- cbind(mds, as.data.frame(colData(rld)))
+mdsData <- data.frame(cmdscale(sampleDistMatrix))
+mds <- cbind(mdsData, as.data.frame(colData(rld)))
 ggplot(mds, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
 
 And here for the *PoissonDistance*:
 
 ```{r mdspois, fig.width=6, fig.height=4.5}
-mdspois <- data.frame(cmdscale(samplePoisDistMatrix))
-mdspois <- cbind(mds, as.data.frame(colData(dds)))
-ggplot(mdspois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
+mdsPoisData <- data.frame(cmdscale(samplePoisDistMatrix))
+mdsPois <- cbind(mdsPoisData, as.data.frame(colData(dds)))
+ggplot(mdsPois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
 
 <a id="de"></a>
