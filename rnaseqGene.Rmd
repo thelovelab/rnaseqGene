@@ -1,5 +1,5 @@
 ---
-date: September 2, 2015
+date: September 9, 2015
 output: html_document
 bibliography: bibliography.bib
 vignette: >
@@ -50,7 +50,7 @@ opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE, fig.width=5, fig
 * [Time course experiments](#time)
 * [Session information and references](#ref)
 
-# Introduction
+# Abstract
 
 Here we walk through an end-to-end gene-level RNA-seq differential
 expression workflow using Bioconductor packages.  We will start from
@@ -61,15 +61,27 @@ perform exploratory data analysis (EDA) for quality assessment and to
 explore the relationship between samples, perform differential gene
 expression analysis, and visually explore the results.
 
-The packages used in this workflow that are loaded with the
-*library* function can be installed by following the
+# Introduction
+
+Bioconductor has many packages which support high-throughput sequence
+analysis, including RNA sequencing (RNA-seq). The packages which we
+will cover in this workflow include core packages maintained by the
+Bioconductor core team for importing and processing raw sequencing
+data and loading gene annotations. We will also cover
+contributed packages for statistical analysis and visualization
+of sequencing data. Through scheduled releases every 6 months, the
+Bioconductor project ensures that all the packages within a release
+will work together in harmony (hence the "conductor" metaphor).
+The packages used in this workflow are loaded with the
+*library* function and can be installed by following the
 [Bioconductor package installation instructions](http://bioconductor.org/install/#install-bioconductor-packages).
 
-
-If you have questions about this workflow, please post them to the
+If you have questions about this workflow or any Bioconductor
+software, please post these to the
 [Bioconductor support site](https://support.bioconductor.org/).
-If the questions concern a specific package, you can tag the post with the name of the package,
-or for general questions about the workflow, tag the post with `rnaseqgene`. Note the
+If the questions concern a specific package, you can tag the post with
+the name of the package, or for general questions about the workflow,
+tag the post with `rnaseqgene`. Note the
 [posting guide](http://www.bioconductor.org/help/support/posting-guide/)
 for crafting an optimal question for the support site.
 
@@ -77,17 +89,17 @@ for crafting an optimal question for the support site.
 
 The data used in this workflow is stored in the
 `r Biocexptpkg("airway")` package that summarizes an RNA-seq experiment
-wherein airway smooth muscle cells were treated with dexamethasone, a synthetic
-glucocorticoid steroid with anti-inflammatory effects [@Himes2014RNASeq].
-Glucocorticoids are used, for example, in asthma patients to reduce
-inflammation of the airways. In the experiment, four primary human
-airway smooth muscle cell lines were treated with 1 micromolar
-dexamethasone for 18 hours. For each of the four cell lines, we have a
-treated and an untreated sample. Links to more descriptions of the
-experiment and raw data are provided below:
-
-* PMID: [24926665](http://www.ncbi.nlm.nih.gov/pubmed/24926665).
-* GEO: [GSE52778](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778).
+wherein airway smooth muscle cells were treated with dexamethasone, a
+synthetic glucocorticoid steroid with anti-inflammatory effects
+[@Himes2014RNASeq].  Glucocorticoids are used, for example, in asthma
+patients to reduce inflammation of the airways. In the experiment,
+four primary human airway smooth muscle cell lines were treated with 1
+micromolar dexamethasone for 18 hours. For each of the four cell
+lines, we have a treated and an untreated sample. For more description
+of the experiment see the
+[PubMed entry 24926665](http://www.ncbi.nlm.nih.gov/pubmed/24926665)
+and for raw data see the
+[GEO entry GSE52778](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778).
 
 <a id="count"></a>
 
@@ -290,7 +302,7 @@ counting reads/fragments. We will read the gene model from an Ensembl
 [GTF file](http://www.ensembl.org/info/website/upload/gff.html) [@Flicek2014Ensembl],
 using *makeTxDbFromGFF* from the `r Biocpkg("GenomicFeatures")` package.
 GTF files can be downloaded from
-Ensembl's FTP site or other gene model repositories.
+[Ensembl's FTP site](http://www.ensembl.org/info/data/ftp/) or other gene model repositories.
 A *TxDb* object is a database that can be used to
 generate a variety of range-based objects, such as exons, transcripts,
 and genes. We want to make a list of exons grouped by gene for
@@ -320,7 +332,9 @@ gtffile <- file.path(dir,"Homo_sapiens.GRCh37.75_subset.gtf")
 (txdb <- makeTxDbFromGFF(gtffile, format="gtf", circ_seqs=character()))
 ```
 
-The following line produces a *GRangesList* of all the exons grouped by gene.
+The following line produces a *GRangesList* of all the exons grouped
+by gene [@Lawrence2013Software]. Each element of the list is a
+*GRanges* object of the exons for a gene.
 
 ```{r}
 (ebg <- exonsBy(txdb, by="gene"))
@@ -338,7 +352,7 @@ the experiment, and will be described in more detail below.
 the *register* and *MulticoreParam* or *SnowParam* functions from the
 `r Biocpkg("BiocParallel")` package before the counting call below.
 Expect that the `summarizeOverlaps` call will take at least 30 minutes
-per file for a human RNA-seq file with 20 million reads. By sending
+per file for a human RNA-seq file with 30 million aligned reads. By sending
 the files to separate cores, one can speed up the entire counting process.
 
 ```{r}
@@ -347,11 +361,13 @@ library("BiocParallel")
 ```
 
 Here we specify to use one core, not multiple cores. We could have
-also skipped this line and it would also run in serial.
+also skipped this line and the counting step would run in serial.
 
 ```{r}
 register(SerialParam())
 ```
+
+The following call creates the *SummarizedExperiment* object with counts:
 
 ```{r}
 se <- summarizeOverlaps(features=ebg, reads=bamfiles,
@@ -366,6 +382,8 @@ We specify a number of arguments besides the `features` and the
 be counted. These modes are shown in Figure 1 of the
 *Counting reads with summarizeOverlaps* vignette for the
 `r Biocpkg("GenomicAlignments")` package.
+Note that fragments will be counted only once to each gene, even if
+they overlap multiple exons of a gene which may themselves be overlapping.
 Setting `singleEnd` to `FALSE`
 indicates that the experiment produced paired-end reads, and we want
 to count a pair of reads (a fragment) only once toward the count
@@ -395,18 +413,22 @@ polygon(c(45,47,47,45),c(75,75,95,95),col="palegreen3",border=NA)
 text(67.5,85,"colData")
 ```
 
-Here we show the component parts of a *SummarizedExperiment* object,
-and the classes derived from it, such as the *DESeqDataSet* that is
-explained in the next section. This container is also discussed in the
-latest Bioconductor paper [@Huber2015Orchestrating].
-The `assay` (pink block) contains
-the matrix (or matrices) of data. In our case we have created a single
-matrix named "counts" that contains the fragment counts for each gene and sample.
-The `rowRanges` (blue block) contains information about the genomic
-ranges [@Lawrence2013Software], and the `colData` (green block) contains information about the
-samples or experiments. The highlighted line in each block represents
-the first row (note that the first row of `colData` lines up with the
-first column of the `assay`).
+**The component parts of a *SummarizedExperiment* object.** The `assay` (pink
+block) contains the matrix of counts, the `rowRanges` (blue block) contains
+information about the genomic ranges and the `colData` (green block)
+contains information about the samples. The highlighted line in each
+block represents the first row (note that the first row of `colData`
+lines up with the first column of the `assay`). 
+
+The *SummarizedExperiment* container is diagrammed in the Figure above
+and discussed in the latest Bioconductor paper [@Huber2015Orchestrating].
+In our case we have created a single matrix named "counts" that contains the fragment
+counts for each gene and sample, which is stored in `assay`. It is
+also possible to store multiple matrices, accessed with `assays`.
+The `rowRanges` for our object is the *GRangesList* we used for
+counting (one *GRanges* of exons for each row of the count matrix).
+The component parts of the *SummarizedExperiment* are accessed with an
+R function of the same name: `assay` (or `assays`), `rowRanges` and `colData`.
 
 This example code above actually only counted a small subset of fragments
 from the original experiment. Nevertheless, we
@@ -423,15 +445,14 @@ head(assay(se), 3)
 colSums(assay(se))
 ```
 
-The `rowRanges` have their own accessor function:
+The `rowRanges`, when printed, only shows the first *GRanges*, and tells us
+there are 19 more elements:
 
 ```{r}
 rowRanges(se)
 ```
 
-Note that the `rowRanges` slot is a *GRangesList* that
-contains all the information about the exons for each gene, i.e., for each row
-of the count matrix. It also contains metadata about the construction
+The `rowRanges` also contains metadata about the construction
 of the gene model in the `metadata` slot. Here we use a helpful R
 function, `str`, to display the metadata compactly:
 
@@ -439,7 +460,7 @@ function, `str`, to display the metadata compactly:
 str(metadata(rowRanges(se)))
 ```
 
-The `colData` also has its own accessor function:
+The `colData`:
 
 ```{r}
 colData(se)
@@ -485,7 +506,7 @@ packages. Additionally, the core Bioconductor classes provide useful
 functionality: for example, subsetting or reordering the rows or
 columns of a *SummarizedExperiment* automatically subsets or reorders
 the associated *rowRanges* and *colData*, which can help to prevent
-accidentally sample swaps that would otherwise lead to spurious
+accidental sample swaps that would otherwise lead to spurious
 results. With *SummarizedExperiment* this is all taken care of behind
 the scenes.
 
@@ -771,7 +792,8 @@ variability in the counts. For a fully *unsupervised* transformation, one can se
 **Note:** for large datasets (hundreds of samples), the
 variance stabilizing transformation will be faster to compute.
 
-To show the effect of the transformation, we plot the first sample
+To show the effect of the transformation, in the Figure below
+we plot the first sample
 against the second, first simply using the *log2* function (after adding
 1, to avoid taking the log of zero), and then using the rlog-transformed
 values. For the *log2* approach, we need to first estimate *size factors* to
@@ -787,6 +809,9 @@ plot(log2(counts(dds, normalized=TRUE)[,1:2] + 1),
 plot(assay(rld)[,1:2],
      pch=16, cex=0.3)
 ```
+
+**Scatterplot of transformed counts from two samples**. Using the log2
+transform of normalized counts (left side) and using the rlog (right side).
 
 We can see how genes with low counts (bottom left-hand corner)
 seem to be excessively variable
@@ -813,8 +838,8 @@ sampleDists <- dist( t( assay(rld) ) )
 sampleDists
 ```
 
-We visualize the distances in a heatmap, using the function
-*pheatmap* from the `r CRANpkg("pheatmap")`.
+We visualize the distances in a heatmap in a Figure below, using the function
+*pheatmap* from the `r CRANpkg("pheatmap")` package.
 
 ```{r}
 library("pheatmap")
@@ -842,6 +867,8 @@ pheatmap(sampleDistMatrix,
          col=colors)
 ```
 
+**Heatmap of sample-to-sample distances using the rlog-transformed values.**
+
 Note that we have changed the row names of the distance matrix to
 contain treatment type and patient number instead of sample ID, so
 that we have all this information in view when looking at the heatmap.
@@ -861,7 +888,7 @@ library("PoiClaClu")
 poisd <- PoissonDistance(t(counts(dds)))
 ```
 
-We can plot the heatmap as before:
+We plot the heatmap in a Figure below.
 
 ```{r poisdistheatmap, fig.width=6, fig.height=4.5}
 samplePoisDistMatrix <- as.matrix( poisd$dd )
@@ -873,13 +900,15 @@ pheatmap(samplePoisDistMatrix,
          col=colors)
 ```
 
+**Heatmap of sample-to-sample distances using the *Poisson Distance*.**
+
 ## PCA plot
 
 Another way to visualize sample-to-sample distances is a
 principal components analysis (PCA). In this ordination method, the
 data points (here, the samples) are projected onto the 2D plane
 such that they spread out in the two directions that explain most of
-the differences. The x-axis is the direction that separates the data
+the differences (Figure below). The x-axis is the direction that separates the data
 points the most. The values of the samples in this direction are
 written *PC1*. The y-axis is a direction (it must be *orthogonal* to
 the first direction) that separates the data the second most. The
@@ -893,6 +922,9 @@ less than the two that we see).
 ```{r plotpca, fig.width=6, fig.height=4.5}
 plotPCA(rld, intgroup = c("dex", "cell"))
 ```
+
+**PCA plot using the rlog-transformed values.** Each unique combination of
+treatment and cell line is given its own color.
 
 Here, we have used the function *plotPCA* that comes with *DESeq2*.
 The two terms specified by `intgroup` are the interesting groups for
@@ -909,7 +941,7 @@ for more details on using *ggplot*.
 percentVar <- round(100 * attr(data, "percentVar"))
 ```
 
-We can then use this data to build up the plot, specifying that the
+We can then use this data to build up a second plot in a Figure below, specifying that the
 color of the points should reflect dexamethasone treatment and the
 shape should reflect the cell line.
 
@@ -922,6 +954,9 @@ ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) + geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance"))
 ```
+
+**PCA plot using the rlog-transformed values with custom *ggplot2* code.**
+Here we specify cell line (plotting symbol) and dexamethasone treatment (color).
 
 From the PCA plot, we see that the differences between cells (the
 different plotting shapes) are considerable, though not stronger than the differences due to
@@ -936,8 +971,8 @@ this design by assigning the formula `~ cell + dex` earlier.
 Another plot, very similar to the PCA plot, can be made using the 
 *multidimensional scaling* (MDS) function in base R. This is useful when we
 don't have a matrix of data, but only a matrix of distances. Here we
-compute the MDS plot for the distances calculated from the *rlog*
-transformed counts:
+compute the MDS for the distances calculated from the *rlog*
+transformed counts and plot these in a Figure below.
 
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
 mdsData <- data.frame(cmdscale(sampleDistMatrix))
@@ -945,13 +980,17 @@ mds <- cbind(mdsData, as.data.frame(colData(rld)))
 ggplot(mds, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
 
-And here for the *PoissonDistance*:
+**MDS plot using rlog-transformed values.**
+
+In a Figure below we show the same plot for the *PoissonDistance*:
 
 ```{r mdspois, fig.width=6, fig.height=4.5}
 mdsPoisData <- data.frame(cmdscale(samplePoisDistMatrix))
 mdsPois <- cbind(mdsPoisData, as.data.frame(colData(dds)))
 ggplot(mdsPois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
 ```
+
+**MDS plot using the *Poisson Distance*.**
 
 <a id="de"></a>
 
@@ -1072,7 +1111,7 @@ table(resLFC1$padj < 0.1)
 
 Sometimes a subset of the *p* values in `res` will be `NA` ("not
 available"). This is *DESeq*'s way of reporting that all counts for
-this gene were zero, and hence not test was applied. In addition, *p*
+this gene were zero, and hence no test was applied. In addition, *p*
 values can be assigned `NA` if the gene was excluded from analysis
 because it contained an extreme count outlier. For more information,
 see the outlier detection section of the *DESeq2* vignette.
@@ -1118,7 +1157,7 @@ sum(!is.na(res$pvalue))
 
 Now, assume for a moment that the null hypothesis is true for all
 genes, i.e., no gene is affected by the treatment with
-dexamethasone. Then, by the definition of *p* value, we expect up to
+dexamethasone. Then, by the definition of the *p* value, we expect up to
 5% of the genes to have a *p* value below 0.05. This amounts to
 `r round(sum(!is.na(res$pvalue)) * .05 )` genes.
 If we just considered the list of genes with a *p* value below 0.05 as
@@ -1141,7 +1180,7 @@ object.
 
 The FDR is a useful statistic for many high-throughput
 experiments, as we are often interested in reporting or focusing on a
-set of interesting genes, and we would like to put an upper bound the
+set of interesting genes, and we would like to put an upper bound on the
 percent of false positives in this set. 
 
 Hence, if we consider a fraction of 10% false positives acceptable,
@@ -1174,15 +1213,17 @@ head(resSig[ order(resSig$log2FoldChange, decreasing=TRUE), ])
 A quick way to visualize the counts for a particular gene is to use
 the *plotCounts* function that takes as arguments the
 *DESeqDataSet*, a gene name, and the group over which to plot the
-counts. 
+counts (see Figure below).
 
 ```{r plotcounts}
 topGene <- rownames(res)[which.min(res$padj)]
 plotCounts(dds, gene=topGene, intgroup=c("dex"))
 ```
 
+**Normalized counts for a single gene over treatment group.**
+
 We can also make custom plots using the *ggplot* function from the
-`r CRANpkg("ggplot2")` package:
+`r CRANpkg("ggplot2")` package (see Figures below).
 
 ```{r ggplotcountsjitter, fig.width=6, fig.height=4.5}
 data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
@@ -1191,8 +1232,7 @@ ggplot(data, aes(x=dex, y=count, color=cell)) +
   geom_point(position=position_jitter(width=.1,height=0), size=3)
 ```
 
-Here we use a more structural arrangement instead of random jitter,
-and color by the treatment:
+**Normalized counts indicating cell line with color.**
 
 ```{r ggplotcountsdot, fig.width=6, fig.height=4.5}
 ggplot(data, aes(x=dex, y=count, fill=dex)) +
@@ -1200,45 +1240,45 @@ ggplot(data, aes(x=dex, y=count, fill=dex)) +
   geom_dotplot(binaxis="y", stackdir="center")
 ```
 
-Note that the *DESeq* test actually takes into account the cell line
-effect, so a more accurate plot would also show lines between samples
-from the same cell line:
+**Normalized counts using a more structural arrangement.**
+Here the color indicates treatment.
 
 ```{r ggplotcountsgroup, fig.width=6, fig.height=4.5}
 ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
   scale_y_log10() + geom_point(size=3) + geom_line()
 ```
 
+**Normalized counts with lines connecting cell lines.**
+Note that the *DESeq* test actually takes into account the cell line
+effect, so this figure more closely depicts the difference being tested.
+
 An *MA-plot* [@Dudoit2002Statistical] provides a useful overview for an experiment with a
-two-group comparison.  The log2 fold change for a particular
-comparison is plotted on the y-axis and the average of the counts
-normalized by size factor is shown on the x-axis ("M" for minus,
-because a log ratio is equal to log minus log, and "A" for average).
+two-group comparison (Figure below).
 
 ```{r plotma}
 plotMA(res, ylim=c(-5,5))
 ```
 
+**An MA-plot of changes induced by treatment.**
+The log2 fold change for a particular
+comparison is plotted on the y-axis and the average of the counts
+normalized by size factor is shown on the x-axis ("M" for minus,
+because a log ratio is equal to log minus log, and "A" for average).
 Each gene is represented with a dot. Genes with an adjusted *p* value
-below a threshold (here 0.1, the default) are shown in red.  The
-*DESeq2* package incorporates a prior on log2 fold changes, resulting
-in moderated log2 fold changes from genes with low counts and highly
-variable counts, as can be seen by the narrowing of spread of points
-on the left side of the plot.
-For a detailed explanation of the rationale of moderated fold changes,
-please see the *DESeq2* paper [@Love2014Moderated].
-This plot demonstrates that only genes
-with a large average normalized count contain sufficient information
-to yield a significant call.
+below a threshold (here 0.1, the default) are shown in red.
 
-We can also make the MA-plot for the results table in which we raised
-the log2 fold change threshold:
+The *DESeq2* package uses statistical techniques to moderate log2 fold
+changes from genes with very low counts and highly variable counts, as
+can be seen by the narrowing of the vertical spread of points on the
+left side of the MA-plot. For a detailed explanation of the rationale
+of moderated fold changes, please see the *DESeq2* paper
+[@Love2014Moderated].  This plot demonstrates that only genes with a
+large average normalized count contain sufficient information to yield
+a significant call.
 
-```{r plotmalfc}
-plotMA(resLFC1, ylim=c(-5,5))
-```
-
-We can label individual points on the MA plot as well. Here we use the
+We can also make an MA-plot for the results table in which we raised
+the log2 fold change threshold (Figure below).
+We can label individual points on the MA-plot as well. Here we use the
 *with* R function to plot a circle and text for a selected row of the
 results object. Within the *with* function, only the `baseMean` and
 `log2FoldChange` values for the selected rows of `res` are used.
@@ -1252,26 +1292,30 @@ with(resLFC1[topGene, ], {
 })
 ```
 
-Another useful diagnostic plot is the histogram of the *p* values.
+**An MA-plot of a test for large log2 fold changes.**
+The red points indicate genes for which the log2 fold change was
+significantly higher than 1 or less than -1 (treatment resulting in
+more than doubling or less than halving of the normalized counts).
+The point circled in blue indicates the gene with the lowest adjusted *p* value.
 
-```{r histpvalue}
-hist(res$pvalue, breaks=0:20/20, col="grey50", border="white")
-```
-
-This plot becomes smoother by excluding genes with very small counts,
-which generate the spikes in the original plot:
+Another useful diagnostic plot is the histogram of the *p* values
+(Figure below).
+This plot is best formed by excluding genes with very small counts,
+which otherwise generate spikes in the histogram.
 
 ```{r histpvalue2}
 hist(res$pvalue[res$baseMean > 1], breaks=0:20/20, col="grey50", border="white")
 ```
+
+**Histogram of *p* values for genes with mean normalized count larger than 1.**
 
 ## Gene clustering
 
 In the sample distance heatmap made previously, the dendrogram at the
 side shows us a hierarchical clustering of the samples. Such a
 clustering can also be performed for the genes.  Since the clustering
-is only relevant for genes that actually carry signal, one usually
-would only cluster a subset of most highly variable genes. Here,
+is only relevant for genes that actually carry a signal, one usually
+would only cluster a subset of the most highly variable genes. Here,
 for demonstration, let us select the 20 genes with the highest
 variance across samples. We will work with the *rlog* transformed
 counts:
@@ -1285,7 +1329,7 @@ The heatmap becomes more interesting if we do not look at absolute
 expression strength but rather at the amount by which each gene
 deviates in a specific sample from the gene's average across all
 samples. Hence, we center each genes' values across samples,
-and plot a heatmap. We provide a *data.frame* that instructs the
+and plot a heatmap (Figure below). We provide a *data.frame* that instructs the
 *pheatmap* function how to label the columns.
 
 ```{r genescluster}
@@ -1295,7 +1339,10 @@ df <- as.data.frame(colData(rld)[,c("cell","dex")])
 pheatmap(mat, annotation_col=df)
 ```
 
-We can now see blocks of genes that covary across patients. Note that
+**Heatmap of relative rlog-transformed values across samples.**
+Treatment status and cell line information are shown with colored bars
+at the top of the heatmap.
+Blocks of genes that covary across patients. Note that
 a set of genes at the top of the heatmap are separating the N061011
 cell line from the others. In the center of the heatmap, we see a set
 of genes for which the dexamethasone treated samples have higher gene
@@ -1316,15 +1363,20 @@ value.
 In the following code chunk, we create bins using the *quantile*
 function, bin the genes by base mean using *cut*, rename the levels of
 the bins using the middle point, calculate the ratio of *p* values
-less than 0.05 for each bin, and finally plot these ratios.
+less than 0.05 for each bin, and finally plot these ratios (Figure below).
 
-```{r sensitivityovermean}
-qs <- c(0, quantile(resLFC1$baseMean[resLFC1$baseMean > 0], 0:7/7))
+```{r sensitivityovermean, fig.width=6}
+qs <- c(0, quantile(resLFC1$baseMean[resLFC1$baseMean > 0], 0:6/6))
 bins <- cut(resLFC1$baseMean, qs)
-levels(bins) <- paste0("~",round(.5*qs[-1] + .5*qs[-length(qs)]))
+levels(bins) <- paste0("~",round(signif(.5*qs[-1] + .5*qs[-length(qs)],2)))
 ratios <- tapply(resLFC1$pvalue, bins, function(p) mean(p < .05, na.rm=TRUE))
 barplot(ratios, xlab="mean normalized count", ylab="ratio of small p values")
 ```
+
+**The ratio of small *p* values for genes binned by mean normalized count.**
+The *p* values are from a test of log2 fold change greater than 1
+or less than -1. This plot demonstrates that genes with very low mean count
+are underpowered, and best excluded before multiple test correction.
 
 At first sight, there may seem to be little benefit in filtering out
 these genes. After all, the test found them to be non-significant
@@ -1339,17 +1391,7 @@ The *DESeq2* software automatically performs independent filtering
 that maximizes the number of genes with adjusted *p* value
 less than a critical value (by default, `alpha` is set to 0.1).  This
 automatic independent filtering is performed by, and can be controlled
-by, the *results* function.  We can observe how the number of
-rejections changes for various cutoffs based on quantiles of the mean normalized
-count. The following optimal threshold and table of possible values is
-stored as an attribute of the results object.
-
-```{r filterthreshold}
-attr(resLFC1,"filterThreshold")
-plot(attr(resLFC1,"filterNumRej"), type="b",
-     xlab="quantiles of 'baseMean'",
-     ylab="number of rejections")
-```
+by, the *results* function.
 
 The term *independent* highlights an important caveat. Such filtering
 is permissible only if the statistic that we filter on (here the mean
@@ -1497,7 +1539,8 @@ false discovery rate.
 sig <- factor(ifelse(resGRsub$padj < .1 & !is.na(resGRsub$padj),"sig","notsig"))
 ```
 
-We can then plot the results using `r Biocpkg("Gviz")` functions. We
+We can then plot the results using `r Biocpkg("Gviz")` functions
+(Figure below). We
 create an axis track specifying our location in the genome, a track
 that will show the genes and their names, colored by significance,
 and a data track that will draw vertical bars showing the moderated
@@ -1512,6 +1555,10 @@ d <- DataTrack(resGRsub, data="log2FoldChange", baseline=0,
                type="h", name="log2 fold change", strand="+")
 plotTracks(list(g,d,a), groupAnnotation="group", notsig="grey", sig="hotpink")
 ```
+
+**log2 fold changes in genomic region surrounding the gene with smallest
+  adjusted *p* value.** Genes highlighted in pink have adjusted *p*
+  value less than 0.1.
 
 <a id="batch"></a>
 
@@ -1554,7 +1601,7 @@ svseq$sv
 ```
 
 Because we actually do know the cell lines, we can see how well the
-SVA method did at recovering these variables: 
+SVA method did at recovering these variables (Figure below).
 
 ```{r svaplot}
 par(mfrow=c(2,1),mar=c(3,5,3,1))
@@ -1563,6 +1610,11 @@ abline(h=0)
 stripchart(svseq$sv[,2] ~ dds$cell,vertical=TRUE,main="SV2")
 abline(h=0)
 ```
+
+**Surrogate variables 1 and 2 plotted over cell line.**
+Here, we know the hidden source of variation (cell line), and
+therefore can see how the SVA procedure is able to identify a source
+of variation which is correlated with cell line.
 
 Finally, in order to use SVA to remove any effect on the counts from
 our surrogate variables, we simply add these two surrogate variables
@@ -1615,7 +1667,7 @@ same way in both strains.
 ddsTC <- DESeq(ddsTC, test="LRT", reduced = ~ strain + minute)
 resTC <- results(ddsTC)
 resTC$symbol <- mcols(ddsTC)$symbol
-head(resTC[order(resTC$pvalue),],4)
+head(resTC[order(resTC$padj),],4)
 ```
 
 This is just one of the tests that can be applied to time
@@ -1625,18 +1677,20 @@ condition with the smooth function. It is possible to build such a
 model using spline basis functions within R.
 
 We can plot the counts for the groups over time using
-`r CRANpkg("ggplot2")`, for the gene with the smallest *p* value,
+`r CRANpkg("ggplot2")`, for the gene with the smallest adjusted *p* value,
 testing for condition-dependent time profile and accounting for
-differences at time 0. Keep in mind that the interaction terms are the
+differences at time 0 (Figure below). Keep in mind that the interaction terms are the
 *difference* between the two groups at a given time after accounting for
 the difference at time 0.
 
 ```{r fissioncounts, fig.width=6, fig.height=4.5}
-data <- plotCounts(ddsTC, which.min(resTC$pvalue), 
+data <- plotCounts(ddsTC, which.min(resTC$padj), 
                    intgroup=c("minute","strain"), returnData=TRUE)
 ggplot(data, aes(x=minute, y=count, color=strain, group=strain)) + 
   geom_point() + stat_smooth(se=FALSE,method="loess") +  scale_y_log10()
 ```
+
+**Normalized counts for a gene with condition-specific changes over time.**
 
 Wald tests for the log2 fold changes at individual time points can be
 investigated using the `test` argument to *results*:
@@ -1644,7 +1698,7 @@ investigated using the `test` argument to *results*:
 ```{r}
 resultsNames(ddsTC)
 res30 <- results(ddsTC, name="strainmut.minute30", test="Wald")
-res30[which.min(resTC$pvalue),]
+res30[which.min(resTC$padj),]
 ```
 
 We can further more cluster significant genes by their profiles. We
@@ -1655,15 +1709,11 @@ betas <- coef(ddsTC)
 colnames(betas)
 ```
 
-We can now plot the log2 fold changes in a heatmap. Notice the bottom
-set of genes that show strong induction of expression for the
-baseline samples in minutes 15-60 (red boxes in the bottom left
-corner), but then have slightly differences for the mutant strain
-(shown in the boxes in the bottom right corner).
+We can now plot the log2 fold changes in a heatmap (Figure below). 
 
 ```{r fissionheatmap}
 library("pheatmap")
-topGenes <- head(order(resTC$pvalue),20)
+topGenes <- head(order(resTC$padj),20)
 mat <- betas[topGenes, -c(1,2)]
 thr <- 3 
 mat[mat < -thr] <- -thr
@@ -1672,14 +1722,20 @@ pheatmap(mat, breaks=seq(from=-thr, to=thr, length=101),
          cluster_col=FALSE)
 ```
 
+**Heatmap of log2 fold changes for genes with smallest adjusted *p* value.**
+The bottom set of genes show strong induction of expression for the
+baseline samples in minutes 15-60 (red boxes in the bottom left
+corner), but then have slight differences for the mutant strain
+(shown in the boxes in the bottom right corner).
+
 <a id="ref"></a>
 
 # Session information
 
-As last part of this document, we call the function *sessionInfo*,
+As the last part of this document, we call the function *sessionInfo*,
 which reports the version numbers of R and all the packages used in
 this session. It is good practice to always keep such a record of this
-as it will help to trace down what has happened in case that an R script
+as it will help to trace down what has happened in case an R script
 ceases to work or gives different results because the functions have
 been changed in a newer version of one of your packages. By including
 it at the bottom of a script, your reports will become more reproducible.
