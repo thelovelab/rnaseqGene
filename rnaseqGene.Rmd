@@ -63,8 +63,8 @@ expression analysis, and visually explore the results.
 
 # Introduction
 
-Bioconductor has many packages which support high-throughput sequence
-analysis, including RNA sequencing (RNA-seq). The packages which we
+Bioconductor has many packages which support analysis of high-throughput sequence
+data, including RNA sequencing (RNA-seq). The packages which we
 will cover in this workflow include core packages maintained by the
 Bioconductor core team for importing and processing raw sequencing
 data and loading gene annotations. We will also cover
@@ -810,7 +810,8 @@ plot(assay(rld)[,1:2],
      pch=16, cex=0.3)
 ```
 
-**Scatterplot of transformed counts from two samples**. Using the log2
+**Scatterplot of transformed counts from two samples**. Shown are
+scatterplots using the log2
 transform of normalized counts (left side) and using the rlog (right side).
 
 We can see how genes with low counts (bottom left-hand corner)
@@ -1213,7 +1214,7 @@ head(resSig[ order(resSig$log2FoldChange, decreasing=TRUE), ])
 A quick way to visualize the counts for a particular gene is to use
 the *plotCounts* function that takes as arguments the
 *DESeqDataSet*, a gene name, and the group over which to plot the
-counts (see Figure below).
+counts (Figure below).
 
 ```{r plotcounts}
 topGene <- rownames(res)[which.min(res$padj)]
@@ -1223,7 +1224,7 @@ plotCounts(dds, gene=topGene, intgroup=c("dex"))
 **Normalized counts for a single gene over treatment group.**
 
 We can also make custom plots using the *ggplot* function from the
-`r CRANpkg("ggplot2")` package (see Figures below).
+`r CRANpkg("ggplot2")` package (Figures below).
 
 ```{r ggplotcountsjitter, fig.width=6, fig.height=4.5}
 data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
