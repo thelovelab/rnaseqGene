@@ -63,11 +63,12 @@ expression analysis, and visually explore the results.
 
 # Introduction
 
-Bioconductor has many packages which support analysis of high-throughput sequence
+Bioconductor has many packages which support analysis of
+high-throughput sequence 
 data, including RNA sequencing (RNA-seq). The packages which we
-will cover in this workflow include core packages maintained by the
+will use in this workflow include core packages maintained by the
 Bioconductor core team for importing and processing raw sequencing
-data and loading gene annotations. We will also cover
+data and loading gene annotations. We will also use
 contributed packages for statistical analysis and visualization
 of sequencing data. Through scheduled releases every 6 months, the
 Bioconductor project ensures that all the packages within a release
@@ -147,7 +148,7 @@ genome, and the development is too rapid for this document to provide
 an up-to-date list. We recommend consulting benchmarking papers that
 discuss the advantages and disadvantages of each software, which
 include accuracy, sensitivity in aligning reads over splice junctions, speed,
-memory footprint, and many other features.
+memory required, usability, and many other features.
 
 The reads for this experiment were aligned to the Ensembl
 release 75 [@Flicek2014Ensembl] human reference genome using the
