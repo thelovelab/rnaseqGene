@@ -92,8 +92,8 @@ The data used in this workflow is stored in the
 `r Biocexptpkg("airway")` package that summarizes an RNA-seq experiment
 wherein airway smooth muscle cells were treated with dexamethasone, a
 synthetic glucocorticoid steroid with anti-inflammatory effects
-[@Himes2014RNASeq].  Glucocorticoids are used, for example, in asthma
-patients to reduce inflammation of the airways. In the experiment,
+[@Himes2014RNASeq].  Glucocorticoids are used, for example, 
+by people with asthma to reduce inflammation of the airways. In the experiment,
 four primary human airway smooth muscle cell lines were treated with 1
 micromolar dexamethasone for 18 hours. For each of the four cell
 lines, we have a treated and an untreated sample. For more description
@@ -244,8 +244,7 @@ sampleTable
 
 Once the reads have been aligned, there are a number of tools that
 can be used to count the number of reads/fragments that can be
-uniquely 
-assigned to genomic features for each sample. These often take as
+uniquely assigned to genomic features for each sample. These often take as
 input SAM/BAM alignment files and a file specifying the genomic
 features, e.g. a GFF3 or GTF file specifying the gene models.
 
@@ -578,7 +577,7 @@ example of generating the *DESeqDataSet* from files produced by
 
 We now use R's *data* command to load a prepared
 *SummarizedExperiment* that was generated from the publicly available
-sequencing data files associated with the Himes et al. paper,
+sequencing data files associated with @Himes2014RNASeq,
 described above.  The steps we used to produce this object were
 equivalent to those you worked through in the previous sections,
 except that we used all the reads and all the genes. For more details
@@ -706,7 +705,7 @@ We will continue with the object generated from the
 
 # Exploratory analysis and visualization
 
-There are two separate paths in this workflow, the one we will
+There are two separate paths in this workflow; the one we will
 see first involves *transformations of the counts*
 in order to visually explore sample relationships.
 In the second part, we will go back to the original raw counts
@@ -856,7 +855,7 @@ Otherwise the *pheatmap* function would assume that the matrix contains
 the data values themselves, and would calculate distances between the
 rows/columns of the distance matrix, which is not desired.
 We also manually specify a blue color palette using the
-*colorRampPalette* function from the `r CRANpkg("RColorBrewer")`.
+*colorRampPalette* function from the `r CRANpkg("RColorBrewer")` package.
 
 ```{r distheatmap, fig.width=6, fig.height=4.5}
 sampleDistMatrix <- as.matrix( sampleDists )
@@ -1357,7 +1356,7 @@ weakly expressed genes, we have no chance of seeing differential
 expression, because the low read counts suffer from such high Poisson
 noise that any biological effect is drowned in the uncertainties from
 the sampling at a low rate. We can also show this by examining the ratio of
-small *p* values (say, less than, 0.05) for genes binned by mean
+small *p* values (say, less than 0.05) for genes binned by mean
 normalized count. We will use the results table subjected to the threshold to show
 what this looks like in a case when there are few tests with small *p*
 value.
@@ -1703,7 +1702,7 @@ res30 <- results(ddsTC, name="strainmut.minute30", test="Wald")
 res30[which.min(resTC$padj),]
 ```
 
-We can further more cluster significant genes by their profiles. We
+We can furthermore cluster significant genes by their profiles. We
 extract a matrix of the shrunken log2 fold changes using the *coef* function:
 
 ```{r}
@@ -1737,7 +1736,7 @@ corner), but then have slight differences for the mutant strain
 As the last part of this document, we call the function *sessionInfo*,
 which reports the version numbers of R and all the packages used in
 this session. It is good practice to always keep such a record of this
-as it will help to trace down what has happened in case an R script
+as it will help to track down what has happened in case an R script
 ceases to work or gives different results because the functions have
 been changed in a newer version of one of your packages. By including
 it at the bottom of a script, your reports will become more reproducible.
