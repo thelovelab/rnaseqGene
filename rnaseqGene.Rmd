@@ -244,19 +244,40 @@ sampleTable
 
 Once the reads have been aligned, there are a number of tools that
 can be used to count the number of reads/fragments that can be
-uniquely assigned to genomic features for each sample. These often take as
+assigned to genomic features for each sample. These often take as
 input SAM/BAM alignment files and a file specifying the genomic
 features, e.g. a GFF3 or GTF file specifying the gene models.
+
+An exception to the alignment-counting workflow
+is the *tximport* workflow, which leverages transcript
+quantification methods such as *Sailfish* [@Patro2014Sailfish],
+*Salmon* [@Patro2015Salmon],
+*kallisto* [@Bray2015Near],
+and *RSEM* [@Li2011RSEM],
+to estimate abundances without aligning reads (so skipping
+the generation of BAM files). Advantages of using *tximport* to
+produce gene-level count matrices and normalizing offsets, are:
+this approach corrects for potential changes in gene
+length across samples (e.g. from differential isoform usage);
+some of these methods are substantially faster and require less memory
+and disk usage compared to alignment-based methods;
+and it is possible to avoid discarding those fragments that
+can align to multiple genes with homologous sequence. For more details,
+see the manuscript describing this approach [@Soneson2015Differential].
+The *tximport* package will be part of the release branch of Bioconductor
+in April 2016.
 
 The following tools can be used generate count matrices,
 *summarizeOverlaps* [@Lawrence2013Software],
 *featureCounts* [@Liao2014FeatureCounts],
+*tximport* [@Soneson2015Differential],
 or *htseq-count* [@Anders2015HTSeqa]:
 
 function            | package                                              | framework      | output                 | *DESeq2* input function
 --------------------|------------------------------------------------------|----------------|------------------------|-------------------------
 *summarizeOverlaps* | `r Biocpkg("GenomicAlignments")`                     | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
 *featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
+*tximport*          | `r Biocpkg("tximport")`                              | R/Bioconductor | list of matrices       | *DESeqDataSetFromTximport*
 *htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | files                  | *DESeqDataSetFromHTSeq* 
 
 We now proceed using the *summarizeOverlaps* method of counting.
