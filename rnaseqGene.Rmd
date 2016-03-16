@@ -38,7 +38,7 @@ options(width=100)
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE, fig.width=5, fig.height=5)
 ```
 
-# Contents
+# Short links
 
 * [Counting reads](#count) 
 * [Building a DESeqDataSet](#construct)
@@ -248,6 +248,8 @@ assigned to genomic features for each sample. These often take as
 input SAM/BAM alignment files and a file specifying the genomic
 features, e.g. a GFF3 or GTF file specifying the gene models.
 
+## *tximport*: transcript abundance summarized to gene-level
+
 An exception to the alignment-counting workflow
 is the *tximport* workflow, which leverages transcript
 quantification methods such as *Sailfish* [@Patro2014Sailfish],
@@ -266,6 +268,8 @@ can align to multiple genes with homologous sequence. For more details,
 see the manuscript describing this approach [@Soneson2015Differential].
 The *tximport* package will be part of the release branch of Bioconductor
 in April 2016.
+
+## *DESeq2* import functions
 
 The following tools can be used generate count matrices,
 *summarizeOverlaps* [@Lawrence2013Software],
