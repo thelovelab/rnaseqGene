@@ -413,12 +413,24 @@ Setting `singleEnd` to `FALSE`
 indicates that the experiment produced paired-end reads, and we want
 to count a pair of reads (a fragment) only once toward the count
 for a gene. 
+The `fragments` argument can be used when `singleEnd=FALSE` to specify if unpaired
+reads should be counted (yes if `fragments=TRUE`).
 
 In order to produce correct counts, it is important to know if the
 RNA-seq experiment was strand-specific or not. This experiment was not
-strand-specific so we set `ignore.strand` to `TRUE`.  The `fragments`
-argument can be used when `singleEnd=FALSE` to specify if unpaired
-reads should be counted (yes if `fragments=TRUE`).
+strand-specific so we set `ignore.strand` to `TRUE`.
+However, certain strand-specific protocols could have the reads
+align only to the opposite strand of the genes.
+The user must check if the experiment was strand-specific and if so,
+whether the reads should align to the forward or reverse strand of the genes.
+For various counting/quantifying tools, one specifies counting on the
+forward or reverse strand in different ways, although this task 
+is currently easiest with *htseq-count*, *featureCounts*, or the
+transcript abundance quantifiers mentioned previously.
+It is always a good idea to check the column sums of the count matrix
+(see below) to make sure these totals match the expected of the number
+of reads or fragments aligning to genes.  Additionally, one can
+visually check the read alignments using a genome visualization tool.
 
 ## SummarizedExperiment
 
