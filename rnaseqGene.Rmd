@@ -77,6 +77,9 @@ The packages used in this workflow are loaded with the
 *library* function and can be installed by following the
 [Bioconductor package installation instructions](http://bioconductor.org/install/#install-bioconductor-packages).
 
+A published version of this workflow, including reviewer reports and comments
+is available at [F1000Research](http://f1000research.com/articles/4-1070).
+
 If you have questions about this workflow or any Bioconductor
 software, please post these to the
 [Bioconductor support site](https://support.bioconductor.org/).
@@ -676,12 +679,6 @@ library("DESeq2")
 ```{r}
 dds <- DESeqDataSet(se, design = ~ cell + dex)
 ```
-
-If we only wanted to perform transformations and exploratory data analysis
-(as explained later in this workflow)
-we could use a `~ 1` for the design, but we would need to remember to
-substitute a real design, e.g. `~ condition`, before we run *DESeq*
-for differential testing or else we would only be testing the intercept.
 
 ## Starting from count matrices
 
