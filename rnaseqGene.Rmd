@@ -263,11 +263,13 @@ to estimate abundances without aligning reads (so skipping
 the generation of BAM files). Advantages of using *tximport* to
 produce gene-level count matrices and normalizing offsets, are:
 this approach corrects for potential changes in gene
-length across samples (e.g. from differential isoform usage);
+length across samples (e.g. from differential isoform usage)
+[@Trapnell2013Differential]; 
 some of these methods are substantially faster and require less memory
 and disk usage compared to alignment-based methods;
 and it is possible to avoid discarding those fragments that
-can align to multiple genes with homologous sequence. For more details,
+can align to multiple genes with homologous sequence [@Robert2015Errors].
+For more details,
 see the manuscript describing this approach [@Soneson2015Differential].
 The *tximport* package will be part of the release branch of Bioconductor
 in April 2016.
