@@ -989,7 +989,8 @@ library("ggplot2")
 ```{r ggplotpca, fig.width=6, fig.height=4.5}
 ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) + geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-  ylab(paste0("PC2: ",percentVar[2],"% variance"))
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) +
+  coord_fixed()
 ```
 
 **PCA plot using the rlog-transformed values with custom *ggplot2* code.**
@@ -1014,7 +1015,8 @@ transformed counts and plot these in a Figure below.
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
 mdsData <- data.frame(cmdscale(sampleDistMatrix))
 mds <- cbind(mdsData, as.data.frame(colData(rld)))
-ggplot(mds, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
+ggplot(mds, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3) +
+  coord_fixed()
 ```
 
 **MDS plot using rlog-transformed values.**
@@ -1024,7 +1026,8 @@ In a Figure below we show the same plot for the *PoissonDistance*:
 ```{r mdspois, fig.width=6, fig.height=4.5}
 mdsPoisData <- data.frame(cmdscale(samplePoisDistMatrix))
 mdsPois <- cbind(mdsPoisData, as.data.frame(colData(dds)))
-ggplot(mdsPois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3)
+ggplot(mdsPois, aes(X1,X2,color=dex,shape=cell)) + geom_point(size=3) +
+  coord_fixed()
 ```
 
 **MDS plot using the *Poisson Distance*.**
