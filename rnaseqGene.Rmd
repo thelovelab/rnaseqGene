@@ -530,6 +530,10 @@ differential expression of the count data, including
 `r Biocpkg("DSS")` [@Wu2013New],
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
 `r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq].
+@Schurch2016How compared performance of different statistical methods
+for RNA-seq using a large number of biological replicates and can help
+users to decide which tools make sense to use, and how many
+biological replicates are necessary to obtain a certain sensitivity.
 We will continue, using `r Biocpkg("DESeq2")` [@Love2014Moderated].
 The *SummarizedExperiment* object is all we
 need to start our analysis. In the following section we will show how
