@@ -1,4 +1,5 @@
 ---
+title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
 date: September 9, 2015
 output: html_document
 bibliography: bibliography.bib
@@ -18,8 +19,6 @@ vignette: >
 <script type="text/javascript"
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
-
-# RNA-seq workflow: gene-level exploratory analysis and differential expression 
 
 Michael Love [1], Simon Anders [2,3], Vladislav Kim [3], Wolfgang Huber [3]
 
