@@ -1,5 +1,17 @@
 ---
 title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
+author:
+- name: Michael Love
+  affiliation: Department of Biostatistics, Dana-Farber Cancer Institute and
+Harvard School of Public Health, Boston, US
+- name: Simon Anders
+  affiliation:
+  - Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland
+  - &EMBL European Molecular Biology Laboratory (EMBL), Heidelberg, Germany
+- name: Vladislav Kim
+  affiliation: *EMBL
+- name: Wolfgang Huber
+  affiliation: *EMBL
 date: September 9, 2015
 output: html_document
 bibliography: bibliography.bib
@@ -19,15 +31,6 @@ vignette: >
 <script type="text/javascript"
   src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
-
-Michael Love [1], Simon Anders [2,3], Vladislav Kim [3], Wolfgang Huber [3]
-
-[1] Department of Biostatistics, Dana-Farber Cancer Institute and
-Harvard School of Public Health, Boston, US; 
-
-[2] Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland;
-
-[3] European Molecular Biology Laboratory (EMBL), Heidelberg, Germany.
 
 ```{r style, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
 library("BiocStyle")
