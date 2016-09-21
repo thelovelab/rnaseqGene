@@ -2,8 +2,7 @@
 title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
 author:
 - name: Michael Love
-  affiliation: Department of Biostatistics, Dana-Farber Cancer Institute and
-Harvard School of Public Health, Boston, US
+  affiliation: Department of Biostatistics, Dana-Farber Cancer Institute and Harvard School of Public Health, Boston, US
 - name: Simon Anders
   affiliation:
   - Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland
