@@ -118,7 +118,7 @@ As input, the count-based statistical methods, such as
 `r Biocpkg("limma")` with the voom method [@Law2014Voom],
 `r Biocpkg("DSS")` [@Wu2013New], 
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
-`r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq],
+`r Biocpkg("baySeq")` [@Hardcastle2010BaySeq],
 expect input data as obtained, e.g., from RNA-seq or another
 high-throughput sequencing experiment, in the form of a matrix of
 integer values.  The value in the *i*-th row and the *j*-th column of
@@ -541,8 +541,10 @@ differential expression of the count data, including
 `r Biocpkg("limma")` with the voom method [@Law2014Voom],
 `r Biocpkg("DSS")` [@Wu2013New],
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
-`r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq].
-@Schurch2016How compared performance of different statistical methods
+`r Biocpkg("baySeq")` [@Hardcastle2010BaySeq].
+@Schurch2016How
+[compared performance](https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/27022035/) 
+of different statistical methods
 for RNA-seq using a large number of biological replicates and can help
 users to decide which tools make sense to use, and how many
 biological replicates are necessary to obtain a certain sensitivity.
