@@ -1,7 +1,7 @@
 ---
 title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
 author:
-- name: Michael Love
+- name: Michael I. Love
   affiliation: Department of Biostatistics, Dana-Farber Cancer Institute and Harvard School of Public Health, Boston, US
 - name: Simon Anders
   affiliation:
@@ -36,7 +36,9 @@ library("BiocStyle")
 library("knitr")
 library("rmarkdown")
 options(width=100)
-opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE, fig.width=5, fig.height=5)
+opts_chunk$set(message=FALSE, error=FALSE, warning=FALSE,
+               cache=TRUE,
+               fig.width=5, fig.height=5)
 ```
 
 # Short links
@@ -117,23 +119,53 @@ As input, the count-based statistical methods, such as
 `r Biocpkg("DSS")` [@Wu2013New], 
 `r Biocpkg("EBSeq")` [@Leng2013EBSeq] and
 `r Biocpkg("BaySeq")` [@Hardcastle2010BaySeq],
-expect input data as obtained, e.g., from RNA-seq or another high-throughput
-sequencing experiment, in the form of a matrix of integer values.
-The value in the *i*-th row and the *j*-th column of the matrix tells how
-many reads (or fragments, for paired-end RNA-seq) have been
-unambiguously assigned to gene *i* in sample *j*.  Analogously,
-for other types of assays, the rows of the matrix might correspond
-e.g., to binding regions (with ChIP-Seq), species of bacteria (with
-metagenomic datasets), or peptide sequences (with
-quantitative mass spectrometry).
+expect input data as obtained, e.g., from RNA-seq or another
+high-throughput sequencing experiment, in the form of a matrix of
+integer values.  The value in the *i*-th row and the *j*-th column of
+the matrix tells how many reads (or fragments, for paired-end RNA-seq)
+have been assigned to gene *i* in sample *j*.  Analogously, for other
+types of assays, the rows of the matrix might correspond e.g., to
+binding regions (with ChIP-Seq), species of bacteria (with metagenomic
+datasets), or peptide sequences (with quantitative mass spectrometry).
 
-The values in the matrix must be raw counts of sequencing
+The values in the matrix should be counts of sequencing
 reads/fragments. This is important for *DESeq2*'s statistical model to
-hold, as only the raw counts allow assessing the measurement precision
+hold, as only counts allow assessing the measurement precision
 correctly. It is important to *never* provide counts that were
-pre-normalized for sequencing depth/library size, as the
-statistical model is most powerful when applied to raw counts, and is
+pre-normalized for sequencing depth/library size, as the statistical
+model is most powerful when applied to un-normalized counts, and is
 designed to account for library size differences internally.
+
+## Transcript abundances and the *tximport* pipeline
+
+Before we demonstrate how to align and then count RNA-seq fragments, 
+we mention that a newer and faster alternative pipeline is to use 
+transcript abundance quantification methods such as 
+[Salmon](https://combine-lab.github.io/salmon/) [@Patro2016Salmon],
+[Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/) [@Patro2014Sailfish],
+[kallisto](https://pachterlab.github.io/kallisto/) [@Bray2016Near], or 
+[RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM],
+to estimate abundances without aligning reads, followed by the
+`r Biocpkg("tximport")` package for assembling count and offset
+matrices for use with Bioconductor differential gene expression
+packages. 
+The advantages of using the transcript abundance quantifiers in
+conjunction with *tximport* to produce gene-level count matrices and
+normalizing offsets, are: this approach corrects for any potential
+changes in gene length across samples (e.g. from differential isoform
+usage) [@Trapnell2013Differential]; some of these methods are
+substantially faster and require less memory and disk usage compared
+to alignment-based methods; and it is possible to avoid discarding
+those fragments that can align to multiple genes with homologous
+sequence [@Robert2015Errors].  Note that transcript abundance
+quantifiers skip the generation of large files which store read
+alignments, instead producing smaller files which store estimated
+abundances, counts, and effective lengths per transcript.  For more
+details, see the manuscript describing this approach
+[@Soneson2015Differential], and the `r Biocpkg("tximport")` package
+vignette for software details. The entry point back into this workflow
+after using a transcript quantifier and *tximport* would be the
+[section on exploratory data analysis](#eda) below.
 
 ## Aligning reads to a reference genome
 
@@ -141,7 +173,9 @@ The computational analysis of an RNA-seq experiment begins earlier:
 we first obtain a set of FASTQ files that
 contain the nucleotide sequence of each read and a quality score at
 each position.  These reads must first be aligned to a reference
-genome or transcriptome.  It is important to know if the sequencing
+genome or transcriptome, or the abundances and estimated counts per
+transcript can be estimated without alignment, as described above.
+In either case, it is important to know if the sequencing
 experiment was single-end or paired-end, as the alignment software
 will require the user to specify both FASTQ files for a paired-end
 experiment. The output of this alignment step is commonly stored in a
@@ -251,29 +285,6 @@ can be used to count the number of reads/fragments that can be
 assigned to genomic features for each sample. These often take as
 input SAM/BAM alignment files and a file specifying the genomic
 features, e.g. a GFF3 or GTF file specifying the gene models.
-
-## *tximport*: transcript abundance summarized to gene-level
-
-An exception to the alignment-counting workflow
-is the *tximport* workflow, which leverages transcript
-quantification methods such as *Sailfish* [@Patro2014Sailfish],
-*Salmon* [@Patro2015Salmon],
-*kallisto* [@Bray2015Near],
-and *RSEM* [@Li2011RSEM],
-to estimate abundances without aligning reads (so skipping
-the generation of BAM files). Advantages of using *tximport* to
-produce gene-level count matrices and normalizing offsets, are:
-this approach corrects for potential changes in gene
-length across samples (e.g. from differential isoform usage)
-[@Trapnell2013Differential]; 
-some of these methods are substantially faster and require less memory
-and disk usage compared to alignment-based methods;
-and it is possible to avoid discarding those fragments that
-can align to multiple genes with homologous sequence [@Robert2015Errors].
-For more details,
-see the manuscript describing this approach [@Soneson2015Differential].
-The *tximport* package will be part of the release branch of Bioconductor
-in April 2016.
 
 ## *DESeq2* import functions
 
@@ -756,13 +767,15 @@ the statistical testing methods rely on original count data
 
 ## Pre-filtering the dataset
 
-Our count matrix with our *DESeqDataSet* contains many rows with only zeros, and
-additionally many rows with only a few fragments total. In
+Our count matrix with our *DESeqDataSet* contains many rows with only
+zeros, and additionally many rows with only a few fragments total. In
 order to reduce the size of the object, and to increase the speed of
 our functions, we can remove the rows that have no or nearly no
-information about the amount of gene expression. Here we remove rows
-of the *DESeqDataSet* that have no counts, or only a single count
-across all samples:
+information about the amount of gene expression.  Here we apply the
+most minimal filtering rule: removing rows of the *DESeqDataSet* that
+have no counts, or only a single count across all samples. Additional
+weighting/filtering to improve power is applied at a later step in the
+workflow. 
 
 ```{r}
 nrow(dds)
@@ -805,10 +818,15 @@ then becomes approximately *homoskedastic*, and can be used directly for
 computing distances between samples and making PCA plots.
 Another transformation,
 the *variance stabilizing transformation* [@Anders2010Differential],
-is discussed alongside the *rlog* in the *DESeq2* vignette. 
+implemented in the *vst* function, is discussed alongside the *rlog*
+in the *DESeq2* vignette.
 
-**Note:** the rlog transformation is provided for applications *other*
-than differential testing. For differential testing we recommend the
+**Note:** for large datasets (hundreds of samples), the variance
+stabilizing transformation using *vst* will be much faster to compute.
+
+The two transformations offered by DESeq2 are provided for
+applications *other* than differential testing. 
+For differential testing we recommend the
 *DESeq* function applied to raw counts, as described later
 in this workflow, which also takes into account the dependence of the
 variance of counts on the mean value during the dispersion estimation
@@ -829,9 +847,6 @@ However, the experimental design is not used directly in the
 transformation, only in estimating the global amount of
 variability in the counts. For a fully *unsupervised* transformation, one can set
 `blind=TRUE` (which is the default).
-
-**Note:** for large datasets (hundreds of samples), the
-variance stabilizing transformation will be faster to compute.
 
 To show the effect of the transformation, in the Figure below
 we plot the first sample
@@ -979,8 +994,8 @@ See the *ggplot2* [documentation](http://docs.ggplot2.org/current/)
 for more details on using *ggplot*.
 
 ```{r}
-(data <- plotPCA(rld, intgroup = c( "dex", "cell"), returnData=TRUE))
-percentVar <- round(100 * attr(data, "percentVar"))
+(pcaData <- plotPCA(rld, intgroup = c( "dex", "cell"), returnData=TRUE))
+percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```
 
 We can then use this data to build up a second plot in a Figure below, specifying that the
@@ -992,7 +1007,7 @@ library("ggplot2")
 ```
 
 ```{r ggplotpca, fig.width=6, fig.height=4.5}
-ggplot(data, aes(PC1, PC2, color=dex, shape=cell)) + geom_point(size=3) +
+ggplot(pcaData, aes(PC1, PC2, color=dex, shape=cell)) + geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) +
   coord_fixed()
@@ -1271,8 +1286,8 @@ We can also make custom plots using the *ggplot* function from the
 `r CRANpkg("ggplot2")` package (Figures below).
 
 ```{r ggplotcountsjitter, fig.width=6, fig.height=4.5}
-data <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
-ggplot(data, aes(x=dex, y=count, color=cell)) +
+geneCounts <- plotCounts(dds, gene=topGene, intgroup=c("dex","cell"), returnData=TRUE)
+ggplot(geneCounts, aes(x=dex, y=count, color=cell)) +
   scale_y_log10() + 
   geom_point(position=position_jitter(width=.1,height=0), size=3)
 ```
@@ -1280,7 +1295,7 @@ ggplot(data, aes(x=dex, y=count, color=cell)) +
 **Normalized counts indicating cell line with color.**
 
 ```{r ggplotcountsdot, fig.width=6, fig.height=4.5}
-ggplot(data, aes(x=dex, y=count, fill=dex)) +
+ggplot(geneCounts, aes(x=dex, y=count, fill=dex)) +
   scale_y_log10() + 
   geom_dotplot(binaxis="y", stackdir="center")
 ```
@@ -1289,7 +1304,7 @@ ggplot(data, aes(x=dex, y=count, fill=dex)) +
 Here the color indicates treatment.
 
 ```{r ggplotcountsgroup, fig.width=6, fig.height=4.5}
-ggplot(data, aes(x=dex, y=count, color=cell, group=cell)) +
+ggplot(geneCounts, aes(x=dex, y=count, color=cell, group=cell)) +
   scale_y_log10() + geom_point(size=3) + geom_line()
 ```
 
