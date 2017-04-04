@@ -12,14 +12,14 @@ author:
 - name: Wolfgang Huber
   affiliation: *EMBL
 date: 30 March 2017
-output: html_document2
+output: BiocStyle::html_document2
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{RNA-seq workflow at the gene level}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-<!-- to compile this: library("rmarkdown"); library("BiocStyle"); render("rnaseqGene.Rmd") -->
+<!-- to compile this: rmarkdown::render("rnaseqGene.Rmd") -->
 
 <!--
      # a list of all required libraries:
