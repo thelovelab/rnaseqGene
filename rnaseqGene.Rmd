@@ -32,10 +32,9 @@ vignette: >
 library("BiocStyle")
 library("knitr")
 library("rmarkdown")
-options(width = 70)
-opts_chunk$set(message=FALSE, error=FALSE, warning=FALSE,
-               cache=TRUE,
-               fig.width=5, fig.height=5)
+## options(width = 70) # Andrzej said this is not needed
+opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
+               cache = TRUE, fig.width = 5, fig.height = 5)
 ```
 
 # Abstract
