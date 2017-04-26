@@ -120,7 +120,7 @@ pre-normalized for sequencing depth/library size, as the statistical
 model is most powerful when applied to un-normalized counts, and is
 designed to account for library size differences internally.
 
-## Transcript abundances and the *tximport* pipeline
+## Recommended: transcript abundances and the *tximport* pipeline
 
 Before we demonstrate how to align and then count RNA-seq fragments, 
 we mention that a newer and faster alternative pipeline is to use 
@@ -130,9 +130,18 @@ transcript abundance quantification methods such as
 [kallisto](https://pachterlab.github.io/kallisto/) [@Bray2016Near], or 
 [RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM],
 to estimate abundances without aligning reads, followed by the
-`r Biocpkg("tximport")` package for assembling count and offset
-matrices for use with Bioconductor differential gene expression
+`r Biocpkg("tximport")` package for assembling estimated count and
+offset matrices for use with Bioconductor differential gene expression
 packages. 
+
+A tutorial on how to use the *Salmon* software for quantifying
+transcript abundance can be found [here](https://combine-lab.github.io/salmon/getting_started/).
+Following that tutorial, you can use the steps in the 
+[tximport vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html),
+which will show how to build a *DESeqDataSet*. This is our current recommended
+pipeline for users, but below we still include steps on aligning reads to the
+genome and building count matrices from BAM files.
+
 The advantages of using the transcript abundance quantifiers in
 conjunction with *tximport* to produce gene-level count matrices and
 normalizing offsets, are: this approach corrects for any potential
@@ -1117,6 +1126,15 @@ res <- results(dds)
 res
 ```
 
+We could have equivalently produced this results table with the
+following more specific command. Because `dex` is the last variable in
+the design, we could optionally leave off the `contrast` argument to extract
+the comparison of the two levels of `dex`.
+
+```{r}
+res <- results(dds, contrast=c("dex","trt","untrt"))
+```
+
 As `res` is a *DataFrame* object, it carries metadata
 with information on the meaning of the columns:
 
@@ -1223,9 +1241,13 @@ fold change of one cell line over another:
 results(dds, contrast = c("cell", "N061011", "N61311"))
 ```
 
+There are additional ways to build results tables for certain
+comparisons after running *DESeq* once.
 If results for an interaction term are desired, the `name`
 argument of *results* should be used. Please see the 
-help for the *results* function for more details.
+help page for the *results* function for details on the additional
+ways to build results tables. In particular, the **Examples** section of
+the help page for *results* gives some pertinent examples.
 
 ## Multiple testing
 
@@ -1297,6 +1319,8 @@ head(resSig[ order(resSig$log2FoldChange, decreasing = TRUE), ])
 
 # Plotting results
 
+## Counts plot
+
 A quick way to visualize the counts for a particular gene is to use
 the *plotCounts* function that takes as arguments the
 *DESeqDataSet*, a gene name, and the group over which to plot the
@@ -1329,56 +1353,65 @@ ggplot(geneCounts, aes(x = dex, y = count, color = cell, group = cell)) +
 Note that the *DESeq* test actually takes into account the cell line
 effect, so this figure more closely depicts the difference being tested.
 
-An *MA-plot* [@Dudoit2002Statistical] provides a useful overview for an experiment with a
-two-group comparison (figure below).
+## MA-plot
+
+An *MA-plot* [@Dudoit2002Statistical] provides a useful overview for
+the distribution of the estimated coefficients in the model,
+e.g. the comparisons of interest, across all genes.
+On the y-axis, the "M" stands for "minus" --
+subtraction of log values is equivalent to the log of the ratio -- and
+on the x-axis, the "A" stands for "average". You may hear this plot
+also referred to as a mean-difference plot, or a Bland-Altman plot.
+
+Before making the MA-plot, we use the
+*lfcShrink* function to shrink the log2 fold changes for the
+comparison of dex treated vs untreated samples:
 
 ```{r plotma}
+res <- lfcShrink(dds, contrast=c("dex","trt","untrt"), res=res)
 plotMA(res, ylim = c(-5, 5))
 ```
 
 **An MA-plot of changes induced by treatment.**
 The log2 fold change for a particular
 comparison is plotted on the y-axis and the average of the counts
-normalized by size factor is shown on the x-axis ("M" for minus,
-because a log ratio is equal to log minus log, and "A" for average).
+normalized by size factor is shown on the x-axis.
 Each gene is represented with a dot. Genes with an adjusted *p* value
 below a threshold (here 0.1, the default) are shown in red.
 
-The *DESeq2* package uses statistical techniques to moderate log2 fold
-changes from genes with very low counts and highly variable counts, as
-can be seen by the narrowing of the vertical spread of points on the
-left side of the MA-plot. For a detailed explanation of the rationale
-of moderated fold changes, please see the *DESeq2* paper
-[@Love2014Moderated].  This plot demonstrates that only genes with a
-large average normalized count contain sufficient information to yield
-a significant call.
+The *DESeq2* package uses a Bayesian procedure to moderate (or
+"shrink") log2 fold changes from genes with very low counts and highly
+variable counts, as can be seen by the narrowing of the vertical
+spread of points on the left side of the MA-plot. As shown above, the
+*lfcShrink* function performs this operation.  For a detailed
+explanation of the rationale of moderated fold changes, please see the
+*DESeq2* paper [@Love2014Moderated].
 
-We can also make an MA-plot for the results table in which we raised
-the log2 fold change threshold (figure below).
+If we had not used statistical moderation to shrink the noisy log2
+fold changes, we would have instead seen the following plot:
+
+```{r plotmaNoShr}
+res.noshr <- results(dds)
+plotMA(res.noshr, ylim = c(-5, 5))
+```
+
 We can label individual points on the MA-plot as well. Here we use the
 *with* R function to plot a circle and text for a selected row of the
 results object. Within the *with* function, only the `baseMean` and
 `log2FoldChange` values for the selected rows of `res` are used.
 
 ```{r plotmalabel}
-plotMA(resLFC1, ylim = c(-5,5))
-topGene <- rownames(resLFC1)[which.min(resLFC1$padj)]
-with(resLFC1[topGene, ], {
+plotMA(res, ylim = c(-5,5))
+topGene <- rownames(res)[which.min(res$padj)]
+with(res[topGene, ], {
   points(baseMean, log2FoldChange, col="dodgerblue", cex=2, lwd=2)
   text(baseMean, log2FoldChange, topGene, pos=2, col="dodgerblue")
 })
 ```
 
-**An MA-plot of a test for large log2 fold changes.**
-The red points indicate genes for which the log2 fold change was
-significantly higher than 1 or less than -1 (treatment resulting in
-more than doubling or less than halving of the normalized counts).
-The point circled in blue indicates the gene with the lowest adjusted *p* value.
-
 Another useful diagnostic plot is the histogram of the *p* values
-(figure below).
-This plot is best formed by excluding genes with very small counts,
-which otherwise generate spikes in the histogram.
+(figure below). This plot is best formed by excluding genes with very
+small counts, which otherwise generate spikes in the histogram.
 
 ```{r histpvalue2}
 hist(res$pvalue[res$baseMean > 1], breaks = 0:20/20,
