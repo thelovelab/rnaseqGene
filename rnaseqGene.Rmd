@@ -2,7 +2,7 @@
 title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
 author:
 - name: Michael I. Love
-  affiliation: Department of Biostatistics and Genetics, UNC-Chapel Hill, Chapel Hill, NC, US
+  affiliation: Departments of Biostatistics and Genetics, UNC-Chapel Hill, Chapel Hill, NC, US
 - name: Simon Anders
   affiliation:
   - Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland
@@ -34,7 +34,7 @@ library("knitr")
 library("rmarkdown")
 ## options(width = 70) # Andrzej said this is not needed
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
-               cache = TRUE, fig.width = 5, fig.height = 5)
+               cache = FALSE, fig.width = 5, fig.height = 5)
 ```
 
 # Abstract
