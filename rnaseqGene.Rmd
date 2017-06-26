@@ -1567,7 +1567,7 @@ res$entrez <- mapIds(org.Hs.eg.db,
 Now the results have the desired external gene IDs:
 
 ```{r}
-resOrdered <- res[order(res$padj),]
+resOrdered <- res[order(res$pvalue),]
 head(resOrdered)
 ```
 
