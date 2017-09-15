@@ -125,7 +125,7 @@ designed to account for library size differences internally.
 Before we demonstrate how to align and then count RNA-seq fragments, 
 we mention that a newer and faster alternative pipeline is to use 
 transcript abundance quantification methods such as 
-[Salmon](https://combine-lab.github.io/salmon/) [@Patro2016Salmon],
+[Salmon](https://combine-lab.github.io/salmon/) [@Patro2017Salmon],
 [Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/) [@Patro2014Sailfish],
 [kallisto](https://pachterlab.github.io/kallisto/) [@Bray2016Near], or 
 [RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM],
@@ -135,8 +135,14 @@ offset matrices for use with Bioconductor differential gene expression
 packages. 
 
 A tutorial on how to use the *Salmon* software for quantifying
-transcript abundance can be found [here](https://combine-lab.github.io/salmon/getting_started/).
-Following that tutorial, you can use the steps in the 
+transcript abundance can be
+found [here](https://combine-lab.github.io/salmon/getting_started/).
+We recommend using the `--gcBias` 
+[flag](http://salmon.readthedocs.io/en/latest/salmon.html#gcbias)
+which estimates a correction factor for systematic biases
+commonly present in RNA-seq data [@Love2016Modeling; @Patro2017Salmon], 
+unless you are certain that your data do not contain such bias.
+Following the Salmon tutorial, you can use the steps in the 
 [tximport vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html),
 which will show how to build a *DESeqDataSet*. This is our current recommended
 pipeline for users, but below we still include steps on aligning reads to the
