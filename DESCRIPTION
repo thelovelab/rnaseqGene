@@ -1,6 +1,6 @@
 Package: rnaseqGene 
 Title: RNA-seq workflow: gene-level exploratory analysis and differential expression
-Version: 1.0.1
+Version: 1.0.2
 Date: 2017-09-05
 Authors@R: c(person(role=c("aut", "cre"), "Michael", "Love", email = "michaelisaiahlove@gmail.com"))
 Description: Here we walk through an end-to-end gene-level RNA-seq differential
@@ -33,7 +33,7 @@ Depends: R (>= 3.3.0),
         ReportingTools,
         Gviz,
         sva,
-        fission
+        fission,
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true

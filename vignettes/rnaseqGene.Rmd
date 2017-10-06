@@ -12,7 +12,7 @@ author:
 - name: Wolfgang Huber
   affiliation: *EMBL
 date: 30 March 2017
-output: BiocStyle::html_document
+output: BiocStyle::html_document2
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{RNA-seq workflow at the gene level}
@@ -29,7 +29,9 @@ vignette: >
 
 
 ```{r style, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
-library("rnaseqGene")
+library("BiocStyle")
+library("knitr")
+library("rmarkdown")
 ## options(width = 70) # Andrzej said this is not needed
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
                cache = FALSE, fig.width = 5, fig.height = 5)
@@ -233,7 +235,7 @@ matrix.
 
 We load the data package with the example data:
 
-```{r loadairway, eval=FALSE}
+```{r loadairway}
 library("airway")
 ```
 
@@ -303,7 +305,8 @@ be treated, e.g., only process 2 million reads at a time. See
 `?BamFileList` for more information.
 
 ```{r Rsamtools}
-bamfiles <- Rsamtools::BamFileList(filenames, yieldSize=2000000)
+library("Rsamtools")
+bamfiles <- BamFileList(filenames, yieldSize=2000000)
 ```
 
 **Note:** make sure that the chromosome names of the genomic features
@@ -318,7 +321,7 @@ We can check the chromosome names (here called "seqnames")
 in the alignment files like so:
 
 ```{r seqinfo}
-Rsamtools::seqinfo(bamfiles[1])
+seqinfo(bamfiles[1])
 ```
 
 ## Defining gene models
@@ -344,7 +347,7 @@ a pre-scanned GTF file can be imported using *makeTxDbFromGRanges*.
 
 Here we will demonstrate loading from a GTF file:
 
-```{r genfeat, eval=FALSE}
+```{r genfeat}
 library("GenomicFeatures")
 ```
 
@@ -353,7 +356,7 @@ using a 0-length character vector.
 
 ```{r txdb}
 gtffile <- file.path(indir,"Homo_sapiens.GRCh37.75_subset.gtf")
-txdb <- GenomicFeatures::makeTxDbFromGFF(gtffile, format = "gtf", circ_seqs = character())
+txdb <- makeTxDbFromGFF(gtffile, format = "gtf", circ_seqs = character())
 txdb
 ```
 
@@ -362,7 +365,7 @@ by gene [@Lawrence2013Software]. Each element of the list is a
 *GRanges* object of the exons for a gene.
 
 ```{r}
-ebg <- GenomicFeatures::exonsBy(txdb, by="gene")
+ebg <- exonsBy(txdb, by="gene")
 ebg
 ```
 
@@ -381,7 +384,7 @@ Expect that the `summarizeOverlaps` call will take at least 30 minutes
 per file for a human RNA-seq file with 30 million aligned reads. By sending
 the files to separate cores, one can speed up the entire counting process.
 
-```{r, eval=FALSE}
+```{r}
 library("GenomicAlignments")
 library("BiocParallel")
 ```
@@ -592,6 +595,7 @@ reference level (e.g. control, or untreated samples), so we can
 *relevel* the `dex` factor like so: 
 
 ```{r sedex}
+library("magrittr")
 se$dex %<>% relevel("untrt")
 se$dex
 ```
@@ -684,7 +688,7 @@ we can construct a *DESeqDataSet* object from it that will then form
 the starting point of the analysis.
 We add an appropriate design for the analysis:
 
-```{r, eval=FALSE}
+```{r}
 library("DESeq2")
 ```
 
@@ -803,6 +807,7 @@ We plot the standard deviation of each row (genes) against the mean:
 ```{r meanSdCts}
 lambda <- 10^seq(from = -1, to = 2, length = 1000)
 cts <- matrix(rpois(1000*100, lambda), ncol = 100)
+library("vsn")
 meanSdPlot(cts, ranks = FALSE)
 ```
 
@@ -883,6 +888,8 @@ Sequencing depth correction is done automatically for the *rlog*
 and the *vst*.
 
 ```{r rldplot, fig.width = 6, fig.height = 2.5}
+library("dplyr")
+library("ggplot2")
 
 dds <- estimateSizeFactors(dds)
 
@@ -934,7 +941,7 @@ sampleDists
 We visualize the distances in a heatmap in a figure below, using the function
 *pheatmap* from the `r CRANpkg("pheatmap")` package.
 
-```{r, eval=FALSE}
+```{r}
 library("pheatmap")
 library("RColorBrewer")
 ```
@@ -977,6 +984,7 @@ count matrix (not normalized) with samples as rows instead of columns,
 so we need to transpose the counts in `dds`.
 
 ```{r}
+library("PoiClaClu")
 poisd <- PoissonDistance(t(counts(dds)))
 ```
 
@@ -1335,6 +1343,7 @@ We can also make custom plots using the *ggplot* function from the
 `r CRANpkg("ggplot2")` package (figures below).
 
 ```{r ggplotcountsjitter, fig.width = 4, fig.height = 3}
+library("ggbeeswarm")
 geneCounts <- plotCounts(dds, gene = topGene, intgroup = c("dex","cell"),
                          returnData = TRUE)
 ggplot(geneCounts, aes(x = dex, y = count, color = cell)) +
@@ -1429,6 +1438,7 @@ variance across samples. We will work with the *rlog* transformed
 counts:
 
 ```{r}
+library("genefilter")
 topVarGenes <- head(order(rowVars(assay(rld)), decreasing = TRUE), 20)
 ```
 
@@ -1524,7 +1534,7 @@ various ID schemes to each other.
 We load the `r Biocpkg("AnnotationDbi")` package and the annotation package
 `r Biocannopkg("org.Hs.eg.db")`:
 
-```{r, eval=FALSE}
+```{r}
 library("AnnotationDbi")
 library("org.Hs.eg.db")
 ```
@@ -1623,7 +1633,7 @@ resGR$symbol <- mapIds(org.Hs.eg.db, names(resGR), "SYMBOL", "ENSEMBL")
 We will use the `r Biocpkg("Gviz")` package for plotting the GRanges
 and associated metadata: the log fold changes due to dexamethasone treatment.
 
-```{r, eval=FALSE}
+```{r}
 library("Gviz")
 ```
 
@@ -1688,7 +1698,7 @@ variables that we want to account for in our analysis. Another
 package for detecting hidden batches is the `r Biocpkg("RUVSeq")`
 package [@Risso2014Normalization], with the acronym "Remove Unwanted Variation".
 
-```{r, eval=FALSE}
+```{r}
 library("sva")
 ```
 
@@ -1762,6 +1772,7 @@ the difference over time, and any strain-specific differences over
 time (the interaction term `strain:minute`).
 
 ```{r}
+library("fission")
 data("fission")
 ddsTC <- DESeqDataSet(fission, ~ strain + minute + strain:minute)
 ```
