@@ -12,7 +12,7 @@ author:
 - name: Wolfgang Huber
   affiliation: *EMBL
 date: 30 March 2017
-output: BiocStyle::html_document2
+output: BiocStyle::html_document
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{RNA-seq workflow at the gene level}
