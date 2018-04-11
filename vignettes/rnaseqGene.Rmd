@@ -11,7 +11,7 @@ author:
   affiliation: *EMBL
 - name: Wolfgang Huber
   affiliation: *EMBL
-date: 30 March 2017
+date: 11 April, 2018
 output: BiocStyle::html_document
 bibliography: bibliography.bib
 vignette: >
@@ -32,7 +32,6 @@ vignette: >
 library("BiocStyle")
 library("knitr")
 library("rmarkdown")
-## options(width = 70) # Andrzej said this is not needed
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
                cache = FALSE, fig.width = 5, fig.height = 5)
 ```
@@ -781,7 +780,7 @@ dds <- dds[ rowSums(counts(dds)) > 1, ]
 nrow(dds)
 ```
 
-## The rlog and variance stabilizing transformations
+## The variance stabilizing transformation and the rlog
 
 Many common statistical methods for exploratory analysis of
 multidimensional data, for example clustering and *principal
@@ -824,28 +823,29 @@ ratio will overly contribute to sample-sample distances and PCA
 plots. 
 
 As a solution, *DESeq2* offers two transformations for count data that
-stabilize the variance across the mean: the 
-*regularized-logarithm transformation* or *rlog* [@Love2014Moderated],
-and the *variance stabilizing transformation* (VST)
+stabilize the variance across the mean: 
+the *variance stabilizing transformation* (VST)
 for negative binomial data with a dispersion-mean trend
-[@Anders2010Differential], implemented in the *vst* function.
+[@Anders2010Differential], implemented in the *vst* function,
+and the *regularized-logarithm transformation* or *rlog* [@Love2014Moderated].
 
-For genes with high counts, the rlog and VST will give similar result
+For genes with high counts, both the VST and the rlog will give similar result
 to the ordinary log2 transformation of normalized counts.  For genes
-with lower counts, however, the values are shrunken towards the genes'
-averages across all samples. The rlog-transformed or VST data then
-becomes approximately homoskedastic, and can be used directly for
-computing distances between samples, making PCA plots, or as input to
-downstream methods which perform best with homoskedastic data.
+with lower counts, however, the values are shrunken towards a middle
+value. The VST or rlog-transformed data then
+become approximately homoskedastic (more flat trend in the *meanSdPlot*), 
+and can be used directly for computing distances between samples,
+making PCA plots, or as input to downstream methods which perform best
+with homoskedastic data.
 
-**Which transformation to choose?** The rlog tends to work well on
-small datasets (n < 30), sometimes outperforming the VST when there is
-a large range of sequencing depth across samples (an order of
-magnitude difference). The VST is much faster to compute and is less
-sensitive to high count outliers than the rlog. We therefore recommend
-the VST for large datasets (hundreds of samples). You can perform both
-transformations and compare the `meanSdPlot` or PCA plots generated,
-as described below.
+**Which transformation to choose?** 
+The VST is much faster to compute and is less sensitive to high count
+outliers than the rlog. The rlog tends to work well on
+small datasets (n < 30), potentially outperforming the VST when there is
+a wide range of sequencing depth across samples (an order of magnitude difference). 
+We therefore recommend the VST for medium-to-large datasets (n > 30). 
+You can perform both transformations and compare the `meanSdPlot` or
+PCA plots generated, as described below.
 
 Note that the two transformations offered by DESeq2 are provided for
 applications *other* than differential testing. 
@@ -855,19 +855,22 @@ in this workflow, which also takes into account the dependence of the
 variance of counts on the mean value during the dispersion estimation
 step.
 
-The function *rlog* returns an object based on the *SummarizedExperiment*
-class that contains the rlog-transformed values in its *assay* slot.
-
-```{r rlog}
-rld <- rlog(dds, blind = FALSE)
-head(assay(rld), 3)
-```
-
-The function *vst* returns a similar object:
+Both *vst* and *rlog* return a *DESeqTransform* object which is based
+on the *SummarizedExperiment* class. The transformed values are no
+longer counts, and are stored in the *assay* slot. The *colData* that
+was attached to `dds` is still accessible:
 
 ```{r vst}
 vsd <- vst(dds, blind = FALSE)
 head(assay(vsd), 3)
+colData(vsd)
+```
+
+Again, for the *rlog*:
+
+```{r rlog}
+rld <- rlog(dds, blind = FALSE)
+head(assay(rld), 3)
 ```
 
 In the above function calls, we specified `blind = FALSE`, which means
@@ -881,13 +884,12 @@ the counts.  For a fully *unsupervised* transformation, one can set
 To show the effect of the transformation, in the figure below
 we plot the first sample
 against the second, first simply using the *log2* function (after adding
-1, to avoid taking the log of zero), and then using the rlog- and VST-transformed
+1, to avoid taking the log of zero), and then using the VST and rlog-transformed
 values. For the *log2* approach, we need to first estimate *size factors* to
 account for sequencing depth, and then specify `normalized=TRUE`.
-Sequencing depth correction is done automatically for the *rlog*
-and the *vst*.
+Sequencing depth correction is done automatically for the *vst* and *rlog*.
 
-```{r rldplot, fig.width = 6, fig.height = 2.5}
+```{r transformplot, fig.width = 6, fig.height = 2.5}
 library("dplyr")
 library("ggplot2")
 
@@ -896,8 +898,8 @@ dds <- estimateSizeFactors(dds)
 df <- bind_rows(
   as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
          mutate(transformation = "log2(x + 1)"),
-  as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"),
-  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"))
+  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"),
+  as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"))
   
 colnames(df)[1:2] <- c("x", "y")  
 
@@ -907,7 +909,7 @@ ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
 
 **Scatterplot of transformed counts from two samples**. Shown are
 scatterplots using the log2 transform of normalized counts (left),
-using the rlog (middle), and using the VST (right). While the rlog is
+using the VST (middle), and using the rlog (right). While the rlog is
 on roughly the same scale as the log2 counts, the VST has a upward
 shift for the smaller values. It is the differences between samples
 (deviation from y=x in these scatterplots) which will contribute to
@@ -915,7 +917,7 @@ the distance calculations and the PCA plot.
 
 We can see how genes with low counts (bottom left-hand corner) seem to
 be excessively variable on the ordinary logarithmic scale, while the
-rlog transform and VST compress differences for the low count genes
+VST and rlog compress differences for the low count genes
 for which the data provide little information about differential
 expression.
 
@@ -928,13 +930,13 @@ experiment's design?
 
 We use the R function *dist* to calculate the Euclidean distance
 between samples. To ensure we have a roughly equal contribution from
-all genes, we use it on the rlog-transformed data. We need to
+all genes, we use it on the VST data. We need to
 transpose the matrix of values using *t*, because the *dist* function
 expects the different samples to be rows of its argument, and
 different dimensions (here, genes) to be columns.
 
 ```{r}
-sampleDists <- dist(t(assay(rld)))
+sampleDists <- dist(t(assay(vsd)))
 sampleDists
 ```
 
@@ -958,7 +960,7 @@ We also manually specify a blue color palette using the
 
 ```{r distheatmap, fig.width = 6.1, fig.height = 4.5}
 sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- paste( rld$dex, rld$cell, sep = " - " )
+rownames(sampleDistMatrix) <- paste( vsd$dex, vsd$cell, sep = " - " )
 colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(sampleDistMatrix,
@@ -992,7 +994,7 @@ We plot the heatmap in a Figure below.
 
 ```{r poisdistheatmap, fig.width = 6.1, fig.height = 4.5}
 samplePoisDistMatrix <- as.matrix( poisd$dd )
-rownames(samplePoisDistMatrix) <- paste( rld$dex, rld$cell, sep=" - " )
+rownames(samplePoisDistMatrix) <- paste( dds$dex, dds$cell, sep=" - " )
 colnames(samplePoisDistMatrix) <- NULL
 pheatmap(samplePoisDistMatrix,
          clustering_distance_rows = poisd$dd,
@@ -1020,10 +1022,10 @@ variance (although each of these remaining dimensions will explain
 less than the two that we see). 
 
 ```{r plotpca, fig.width=6, fig.height=4.5}
-plotPCA(rld, intgroup = c("dex", "cell"))
+plotPCA(vsd, intgroup = c("dex", "cell"))
 ```
 
-**PCA plot using the rlog-transformed values.** Each unique combination of
+**PCA plot using the VST data.** Each unique combination of
 treatment and cell line is given its own color.
 
 Here, we have used the function *plotPCA* that comes with *DESeq2*.
@@ -1037,7 +1039,7 @@ See the *ggplot2* [documentation](http://docs.ggplot2.org/current/)
 for more details on using *ggplot*.
 
 ```{r}
-pcaData <- plotPCA(rld, intgroup = c( "dex", "cell"), returnData = TRUE)
+pcaData <- plotPCA(vsd, intgroup = c( "dex", "cell"), returnData = TRUE)
 pcaData
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```
@@ -1054,7 +1056,7 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = dex, shape = cell)) +
   coord_fixed()
 ```
 
-**PCA plot using the rlog-transformed values with custom *ggplot2* code.**
+**PCA plot using the VST values with custom *ggplot2* code.**
 Here we specify cell line (plotting symbol) and dexamethasone treatment (color).
 
 From the PCA plot, we see that the differences between cells (the
@@ -1070,17 +1072,17 @@ this design by assigning the formula `~ cell + dex` earlier.
 Another plot, very similar to the PCA plot, can be made using the 
 *multidimensional scaling* (MDS) function in base R. This is useful when we
 don't have a matrix of data, but only a matrix of distances. Here we
-compute the MDS for the distances calculated from the *rlog*
-transformed counts and plot these in a figure below.
+compute the MDS for the distances calculated from the *VST* data
+and plot these in a figure below.
 
 ```{r mdsrlog, fig.width=6, fig.height=4.5}
-mds <- as.data.frame(colData(rld))  %>%
+mds <- as.data.frame(colData(vsd))  %>%
          cbind(cmdscale(sampleDistMatrix))
 ggplot(mds, aes(x = `1`, y = `2`, color = dex, shape = cell)) +
   geom_point(size = 3) + coord_fixed()
 ```
 
-**MDS plot using rlog-transformed values.**
+**MDS plot using VST data.**
 
 In a figure below we show the same plot for the *PoissonDistance*:
 
@@ -1371,10 +1373,19 @@ also referred to as a mean-difference plot, or a Bland-Altman plot.
 
 Before making the MA-plot, we use the
 *lfcShrink* function to shrink the log2 fold changes for the
-comparison of dex treated vs untreated samples:
+comparison of dex treated vs untreated samples.
+There are three types of shrinkage estimators in *DESeq2*, which are covered in the
+[DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
+Here we specify the *apeglm* method for shrinking coefficients, which
+is good for shrinking the noisy LFC estimates while giving low bias
+LFC estimates for true large differences. To use *apeglm* we specify a
+coefficient from the model to shrink, either by name or number as the
+coefficient appears in `resultsNames(dds)`. If it is necessary to
+specify a contrast, either of the other two methods can be used.
 
 ```{r plotma}
-res <- lfcShrink(dds, contrast=c("dex","trt","untrt"), res=res)
+resultsNames(dds)
+res <- lfcShrink(dds, coef="dex_trt_vs_untrt", type="apeglm")
 plotMA(res, ylim = c(-5, 5))
 ```
 
@@ -1397,7 +1408,7 @@ If we had not used statistical moderation to shrink the noisy log2
 fold changes, we would have instead seen the following plot:
 
 ```{r plotmaNoShr}
-res.noshr <- results(dds)
+res.noshr <- results(dds, name="dex_trt_vs_untrt")
 plotMA(res.noshr, ylim = c(-5, 5))
 ```
 
@@ -1434,12 +1445,11 @@ clustering can also be performed for the genes.  Since the clustering
 is only relevant for genes that actually carry a signal, one usually
 would only cluster a subset of the most highly variable genes. Here,
 for demonstration, let us select the 20 genes with the highest
-variance across samples. We will work with the *rlog* transformed
-counts:
+variance across samples. We will work with the VST data.
 
 ```{r}
 library("genefilter")
-topVarGenes <- head(order(rowVars(assay(rld)), decreasing = TRUE), 20)
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
 ```
 
 The heatmap becomes more interesting if we do not look at absolute
@@ -1450,13 +1460,13 @@ and plot a heatmap (figure below). We provide a *data.frame* that instructs the
 *pheatmap* function how to label the columns.
 
 ```{r genescluster}
-mat  <- assay(rld)[ topVarGenes, ]
+mat  <- assay(vsd)[ topVarGenes, ]
 mat  <- mat - rowMeans(mat)
-anno <- as.data.frame(colData(rld)[, c("cell","dex")])
+anno <- as.data.frame(colData(vsd)[, c("cell","dex")])
 pheatmap(mat, annotation_col = anno)
 ```
 
-**Heatmap of relative rlog-transformed values across samples.**
+**Heatmap of relative VST-transformed values across samples.**
 Treatment status and cell line information are shown with colored bars
 at the top of the heatmap.
 Blocks of genes that covary across patients. Note that
@@ -1617,10 +1627,13 @@ Bioconductor objects specifying the genomic coordinates of the genes. We
 can therefore easily plot our differential expression results in
 genomic space. While the *results* function by default returns a
 *DataFrame*, using the `format` argument, we can ask for *GRanges* or
-*GRangesList* output.
+*GRangesList* output. *lfcShrink* does not yet have the option to
+output *GRanges*, so we add the column of shrunken coefficients
+manually.
 
 ```{r}
-resGR <- results(dds, lfcThreshold = 1, format = "GRanges")
+resGR <- results(dds, name="dex_trt_vs_untrt", format="GRanges")
+resGR$log2FoldChange <- res$log2FoldChange
 resGR
 ```
 
@@ -1690,13 +1703,19 @@ in the experiment, only that there was treatment with
 dexamethasone. The cell line effect on the counts then would represent
 some hidden and unwanted variation that might be affecting
 many or all of the genes in the dataset. We can use statistical
-methods designed for RNA-seq from the `r Biocpkg("sva")` package [@Leek2014Svaseq] to
+methods designed for RNA-seq from the `r Biocpkg("sva")` package
+[@Leek2014Svaseq] or the `r Biocpkg("RUVSeq")` package
+[@Risso2014Normalization] in Bioconductor to
 detect such groupings of the samples, and then we can add these to the
-*DESeqDataSet* design, in order to account for them. The *SVA*
-package uses the term *surrogate variables* for the estimated
-variables that we want to account for in our analysis. Another
-package for detecting hidden batches is the `r Biocpkg("RUVSeq")`
-package [@Risso2014Normalization], with the acronym "Remove Unwanted Variation".
+*DESeqDataSet* design, in order to account for them. 
+
+The *SVA* package uses the term *surrogate variables* for the estimated
+variables that we want to account for in our analysis, while the RUV
+package uses the terms *factors of unwanted variation* with the acronym "Remove Unwanted
+Variation" explaining the package title. We first use *SVA* to find
+hidden batch effects and then *RUV* following. 
+
+## Using SVA with DESeq2
 
 ```{r}
 library("sva")
@@ -1749,11 +1768,59 @@ design(ddssva) <- ~ SV1 + SV2 + dex
 ```
 
 We could then produce results controlling for surrogate variables by
-running *DESeq* with the new design: 
+running *DESeq* with the new design.
 
-```{r svaDE}
-ddssva %<>% DESeq
+## Using RUV with DESeq2
+
+We can also use the *RUV* method in the *RUVSeq* package to detect the
+hidden batch effects.
+
+```{r}
+library("RUVSeq")
 ```
+
+We can use the `RUVg` function to estimate *factors of unwanted
+variation*, analogous to *SVA*'s *surrogate variables*. A difference
+compared to the *SVA* procedure above, is that we first would run
+*DESeq* and *results* to obtain the p-values for the analysis without
+knowing about the batches, e.g. just `~ dex`. Supposing that we have
+this results table `res`, we then pull out a set of *empirical control
+genes* by looking at the genes that do not have a small p-value.
+
+```{r}
+set <- newSeqExpressionSet(counts(dds))
+idx  <- rowSums(counts(set) > 5) >= 2
+set  <- set[idx, ]
+not.sig <- rownames(res)[which(res$pvalue > .1)]
+empirical <- rownames(set)[ rownames(set) %in% not.sig ]
+set <- RUVg(set, empirical, k=2)
+pData(set)
+```
+
+We can plot the factors estimated by *RUV*:
+
+```{r ruvplot}
+par(mfrow = c(2, 1), mar = c(3,5,3,1))
+for (i in 1:2) {
+  stripchart(pData(set)[, i] ~ dds$cell, vertical = TRUE, main = paste0("W", i))
+  abline(h = 0)
+ }
+```
+
+**Factors of unwanted variation plotted over cell line.**
+
+As before, if we wanted to control for these factors, we simply
+add them to the *DESeqDataSet* and to the design:
+
+```{r}
+ddsruv <- dds
+ddsruv$W1 <- set$W_1
+ddsruv$W2 <- set$W_2
+design(ddsruv) <- ~ W1 + W2 + dex
+```
+
+We would then run *DESeq* with the new design to re-estimate the
+parameters and results.
 
 <a id="time"></a>
 

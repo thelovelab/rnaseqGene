@@ -1,7 +1,7 @@
 Package: rnaseqGene 
 Title: RNA-seq workflow: gene-level exploratory analysis and differential expression
-Version: 1.1.0
-Date: 2017-09-05
+Version: 1.1.1
+Date: 2018-04-11
 Authors@R: c(person(role=c("aut", "cre"), "Michael", "Love", email = "michaelisaiahlove@gmail.com"))
 Description: Here we walk through an end-to-end gene-level RNA-seq differential
     expression workflow using Bioconductor packages.  We will start from
@@ -33,7 +33,8 @@ Depends: R (>= 3.3.0),
         ReportingTools,
         Gviz,
         sva,
-        fission,
+	RUVSeq,
+        fission
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
