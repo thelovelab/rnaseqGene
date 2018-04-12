@@ -1384,6 +1384,7 @@ coefficient appears in `resultsNames(dds)`. If it is necessary to
 specify a contrast, either of the other two methods can be used.
 
 ```{r plotma}
+library("apeglm")
 resultsNames(dds)
 res <- lfcShrink(dds, coef="dex_trt_vs_untrt", type="apeglm")
 plotMA(res, ylim = c(-5, 5))
