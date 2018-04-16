@@ -1,6 +1,6 @@
 Package: rnaseqGene 
 Title: RNA-seq workflow: gene-level exploratory analysis and differential expression
-Version: 1.1.5
+Version: 1.1.6
 Date: 2018-04-11
 Authors@R: c(person(role=c("aut", "cre"), "Michael", "Love", email = "michaelisaiahlove@gmail.com"))
 Description: Here we walk through an end-to-end gene-level RNA-seq differential
@@ -43,4 +43,4 @@ VignetteBuilder: knitr
 biocViews: Workflow, GeneExpressionWorkflow
 Suggests: knitr, rmarkdown
 NeedsCompilation: no
-URL: https://www.bioconductor.org/help/workflows/rnaseqGene/
+URL: https://github.com/mikelove/rnaseqGene/
