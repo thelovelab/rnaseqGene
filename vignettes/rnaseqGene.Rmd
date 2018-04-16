@@ -1792,6 +1792,7 @@ genes* by looking at the genes that do not have a small p-value.
 set <- newSeqExpressionSet(counts(dds))
 idx  <- rowSums(counts(set) > 5) >= 2
 set  <- set[idx, ]
+set <- betweenLaneNormalization(set, which="upper")
 not.sig <- rownames(res)[which(res$pvalue > .1)]
 empirical <- rownames(set)[ rownames(set) %in% not.sig ]
 set <- RUVg(set, empirical, k=2)
