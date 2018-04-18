@@ -1378,10 +1378,9 @@ There are three types of shrinkage estimators in *DESeq2*, which are covered in 
 [DESeq2 vignette](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html).
 Here we specify the *apeglm* method for shrinking coefficients, which
 is good for shrinking the noisy LFC estimates while giving low bias
-LFC estimates for true large differences. To use *apeglm* we specify a
+LFC estimates for true large differences [@Zhu2018]. To use *apeglm* we specify a
 coefficient from the model to shrink, either by name or number as the
-coefficient appears in `resultsNames(dds)`. If it is necessary to
-specify a contrast, either of the other two methods can be used.
+coefficient appears in `resultsNames(dds)`. 
 
 ```{r plotma}
 library("apeglm")
@@ -1389,6 +1388,12 @@ resultsNames(dds)
 res <- lfcShrink(dds, coef="dex_trt_vs_untrt", type="apeglm")
 plotMA(res, ylim = c(-5, 5))
 ```
+
+If it is necessary to specify a contrast not represented in
+`resultsNames(dds)`, either of the other two shrinkage methods can be used,
+or in some cases, re-factoring the relevant variables and running
+`nbinomWaldTest` followed by `lfcShrink` is sufficient. See the DESeq2
+vignette for more details.
 
 **An MA-plot of changes induced by treatment.**
 The log2 fold change for a particular
