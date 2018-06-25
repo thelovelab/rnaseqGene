@@ -2,13 +2,13 @@
 title: "RNA-seq workflow: gene-level exploratory analysis and differential expression"
 author:
 - name: Michael I. Love
-  affiliation: Departments of Biostatistics and Genetics, UNC-Chapel Hill, Chapel Hill, NC, US
+  affiliation: 
+  - Department of Biostatistics, UNC-Chapel Hill, Chapel Hill, NC, US
+  - Department of Genetics, UNC-Chapel Hill, Chapel Hill, NC, US
 - name: Simon Anders
-  affiliation:
-  - Institute for Molecular Medicine Finland (FIMM), Helsinki, Finland
-  - &EMBL European Molecular Biology Laboratory (EMBL), Heidelberg, Germany
+  affiliation: Zentrum für Molekulare Biologie der Universität Heidelberg, Heidelberg, Germany
 - name: Vladislav Kim
-  affiliation: *EMBL
+  affiliation: &EMBL European Molecular Biology Laboratory (EMBL), Heidelberg, Germany
 - name: Wolfgang Huber
   affiliation: *EMBL
 date: 11 April, 2018
