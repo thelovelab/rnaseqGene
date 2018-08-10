@@ -47,7 +47,7 @@ opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
 
 **R version**: `r R.version.string`
 
-**Bioconductor version**: `r BiocInstaller::biocVersion()`
+**Bioconductor version**: `r BiocManager::version()`
 
 **Package**: `r packageVersion("rnaseqGene")`
 
