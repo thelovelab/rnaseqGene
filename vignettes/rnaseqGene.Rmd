@@ -1887,11 +1887,12 @@ the difference at time 0.
 ```{r fissioncounts, fig.width=6, fig.height=4.5}
 fiss <- plotCounts(ddsTC, which.min(resTC$padj), 
                    intgroup = c("minute","strain"), returnData = TRUE)
+fiss$minute <- as.numeric(as.character(fiss$minute))
 ggplot(fiss,
-  aes(x = as.numeric(minute), y = count, color = strain, group = strain)) + 
-  geom_point() + geom_smooth(se = FALSE, method = "loess") + scale_y_log10()
+  aes(x = minute, y = count, color = strain, group = strain)) + 
+  geom_point() + stat_summary(fun.y=mean, geom="line") +
+  scale_y_log10()
 ```
-
 **Normalized counts for a gene with condition-specific changes over time.**
 
 Wald tests for the log2 fold changes at individual time points can be
