@@ -974,7 +974,7 @@ pheatmap(sampleDistMatrix,
          col = colors)
 ```
 
-**Heatmap of sample-to-sample distances using the rlog-transformed values.**
+**Heatmap of sample-to-sample distances using the variance stabilizing transformed values.**
 
 Note that we have changed the row names of the distance matrix to
 contain treatment type and patient number instead of sample ID, so
