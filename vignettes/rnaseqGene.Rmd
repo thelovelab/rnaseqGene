@@ -42,7 +42,7 @@ library("BiocStyle")
 library("knitr")
 library("rmarkdown")
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
-               cache = TRUE, fig.width = 5, fig.height = 5)
+               cache = FALSE, fig.width = 5, fig.height = 5)
 ```
 
 **R version**: `r R.version.string`
