@@ -42,7 +42,7 @@ library("BiocStyle")
 library("knitr")
 library("rmarkdown")
 opts_chunk$set(message = FALSE, error = FALSE, warning = FALSE,
-               cache = FALSE, fig.width = 5, fig.height = 5)
+               cache = TRUE, fig.width = 5, fig.height = 5)
 ```
 
 **R version**: `r R.version.string`
@@ -124,19 +124,20 @@ pre-normalized for sequencing depth/library size, as the statistical
 model is most powerful when applied to un-normalized counts, and is
 designed to account for library size differences internally.
 
-## Recommended: transcript abundances and the *tximport* pipeline
+## Recommended: transcript quantification and *tximport* / *tximeta*
 
 Before we demonstrate how to align and then count RNA-seq fragments, 
 we mention that a newer and faster alternative pipeline is to use 
 transcript abundance quantification methods such as 
 [Salmon](https://combine-lab.github.io/salmon/) [@Patro2017Salmon],
-[Sailfish](http://www.cs.cmu.edu/~ckingsf/software/sailfish/) [@Patro2014Sailfish],
 [kallisto](https://pachterlab.github.io/kallisto/) [@Bray2016Near], or 
 [RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM],
 to estimate abundances without aligning reads, followed by the
-`r Biocpkg("tximport")` package for assembling estimated count and
+`r Biocpkg("tximport")` [@Soneson2015Differential] or
+`r Biocpkg("tximeta")` [@Love2019]
+packages for assembling estimated count and
 offset matrices for use with Bioconductor differential gene expression
-packages. 
+packages.
 
 A tutorial on how to use the *Salmon* software for quantifying
 transcript abundance can be
@@ -153,7 +154,7 @@ pipeline for users, but below we still include steps on aligning reads to the
 genome and building count matrices from BAM files.
 
 The advantages of using the transcript abundance quantifiers in
-conjunction with *tximport* to produce gene-level count matrices and
+conjunction with *tximport*/*tximeta* to produce gene-level count matrices and
 normalizing offsets, are: this approach corrects for any potential
 changes in gene length across samples (e.g. from differential isoform
 usage) [@Trapnell2013Differential]; some of these methods are
@@ -168,6 +169,20 @@ details, see the manuscript describing this approach
 [@Soneson2015Differential], and the `r Biocpkg("tximport")` package
 vignette for software details. The entry point back into this workflow
 after using a transcript quantifier and *tximport* would be the
+[section on exploratory data analysis](#eda) below.
+
+`r Biocpkg("tximeta")` [@Love2019]
+extends *tximport*, offering the same functionality, plus the
+additional benefit of automatic addition of annotation metadata for
+commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
+mouse). See the 
+[tximeta vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.htmlm)
+package vignette for more details. *tximeta* produces a
+*SummarizedExperiment* that can be loaded easily into *DESeq2* using
+the `DESeqDataSet` function, with an example in the *tximeta* package
+vignette.
+The entry point back into this workflow
+after using a transcript quantifier and *tximeta* would be the
 [section on exploratory data analysis](#eda) below.
 
 ## Aligning reads to a reference genome
@@ -279,18 +294,21 @@ features, e.g. a GFF3 or GTF file specifying the gene models.
 
 ## *DESeq2* import functions
 
-The following tools can be used generate count matrices:
+The following tools can be used generate or compile count data for use
+with *DESeq2*:
 *summarizeOverlaps* [@Lawrence2013Software],
 *featureCounts* [@Liao2014FeatureCounts],
 *tximport* [@Soneson2015Differential],
+*tximeta* [@Love2019],
 *htseq-count* [@Anders2015HTSeqa].
 
 function            | package                                              | framework      | output                 | *DESeq2* input function
 --------------------|------------------------------------------------------|----------------|------------------------|-------------------------
-*summarizeOverlaps* | `r Biocpkg("GenomicAlignments")`                     | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
-*featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
 *tximport*          | `r Biocpkg("tximport")`                              | R/Bioconductor | list of matrices       | *DESeqDataSetFromTximport*
+*tximeta*           | `r Biocpkg("tximeta")`                               | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
 *htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | files                  | *DESeqDataSetFromHTSeq* 
+*featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
+*summarizeOverlaps* | `r Biocpkg("GenomicAlignments")`                     | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
 
 We now proceed using *summarizeOverlaps*.
 Using the `Run` column in the sample table, we construct the full
@@ -781,8 +799,21 @@ workflow.
 
 ```{r}
 nrow(dds)
-dds <- dds[ rowSums(counts(dds)) > 1, ]
+keep <- rowSums(counts(dds)) > 1
+dds <- dds[keep,]
 nrow(dds)
+```
+
+For some datasets, it may make sense to perform additional
+filtering. For example, one can specify that at least 3 samples have a
+count of 10 or higher. One recommendation for the number of samples
+would be set to the smallest group size. Such a rule could be
+specified by creating a logic vector and subsetting the `dds` as
+above. Here is an example of another rule we could have used:
+
+```{r}
+# at least 3 samples with a count of 10 or higher
+keep <- rowSums(counts(dds) >= 10) >= 3
 ```
 
 ## The variance stabilizing transformation and the rlog
@@ -1058,7 +1089,8 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = dex, shape = cell)) +
   geom_point(size =3) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
-  coord_fixed()
+  coord_fixed() +
+  ggtitle("PCA with VST data")
 ```
 
 **PCA plot using the VST values with custom *ggplot2* code.**
@@ -1080,11 +1112,11 @@ don't have a matrix of data, but only a matrix of distances. Here we
 compute the MDS for the distances calculated from the *VST* data
 and plot these in a figure below.
 
-```{r mdsrlog, fig.width=6, fig.height=4.5}
+```{r mdsvst, fig.width=6, fig.height=4.5}
 mds <- as.data.frame(colData(vsd))  %>%
          cbind(cmdscale(sampleDistMatrix))
 ggplot(mds, aes(x = `1`, y = `2`, color = dex, shape = cell)) +
-  geom_point(size = 3) + coord_fixed()
+  geom_point(size = 3) + coord_fixed() + ggtitle("MDS with VST data")
 ```
 
 **MDS plot using VST data.**
@@ -1095,7 +1127,7 @@ In a figure below we show the same plot for the *PoissonDistance*:
 mdsPois <- as.data.frame(colData(dds)) %>%
    cbind(cmdscale(samplePoisDistMatrix))
 ggplot(mdsPois, aes(x = `1`, y = `2`, color = dex, shape = cell)) +
-  geom_point(size = 3) + coord_fixed()
+  geom_point(size = 3) + coord_fixed() + ggtitle("MDS with PoissonDistances")
 ```
 
 **MDS plot using the *Poisson Distance*.**
@@ -1543,6 +1575,22 @@ The independent filtering software used inside
 *DESeq2* comes from the `r Biocpkg("genefilter")` package, that
 contains a reference to a paper describing the statistical foundation
 for independent filtering [@Bourgon2010Independent].
+
+## Independent Hypothesis Weighting
+
+A generalization of the idea of *p* value filtering is to *weight*
+hypotheses to optimize power. A Bioconductor
+package, `r Biocpkg("IHW")` is available
+that implements the method of *Independent Hypothesis Weighting*
+[@Ignatiadis2016]. See the *DESeq2* package vignette for an example of
+using *IHW* in combination with *DESeq2*. In particular, the following
+(here, un-evaluated) code chunk can be used to perform IHW in lieu of
+independent filtering described above.
+
+```{r, eval=FALSE}
+library("IHW")
+res.ihw <- results(dds, filterFun=ihw)
+```
 
 <a id="annotate"></a>
 
