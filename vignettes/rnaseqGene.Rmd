@@ -1104,6 +1104,34 @@ account for this in differential testing by using a paired design
 untreated sample from the *same* cell line). We are already set up for
 this design by assigning the formula `~ cell + dex` earlier.
 
+## PCA plot using Generalized PCA
+
+Another technique for performing dimension reduction on data that is
+not Normally distributed (e.g. over-dispersed count data) is 
+*generalized principal component analysis*, or GLM-PCA, [@Townes2019] 
+as implemented in the CRAN package `r CRANpkg("glmpca")`. This package
+takes as input the count matrix, as well as the number of latent
+dimensions to fit (here, we specify 2). As stated by @Townes2019:
+
+> ...we propose the use of GLM-PCA, a generalization of
+> PCA to exponential family likelihoods. GLM-PCA operates on raw counts,
+> avoiding the pitfalls of normalization. We also demonstrate that applying PCA
+> to deviance or Pearson residuals provides a useful and fast approximation to
+> GLM-PCA.
+
+```{r}
+library("glmpca")
+gpca <- glmpca(counts(dds), L=2)
+gpca.dat <- gpca$factors
+gpca.dat$dex <- dds$dex
+gpca.dat$cell <- dds$cell
+```
+
+```{r glmpca, fig.width=6, fig.height=4.5}
+ggplot(gpca.dat, aes(x = dim1, y = dim2, color = dex, shape = cell)) +
+  geom_point(size =3) + coord_fixed() + ggtitle("glmpca - Generalized PCA")
+```
+
 ## MDS plot
 
 Another plot, very similar to the PCA plot, can be made using the 
