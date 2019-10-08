@@ -68,17 +68,21 @@ The packages used in this workflow are loaded with the
 *library* function and can be installed by following the
 [Bioconductor package installation instructions](http://bioconductor.org/install/#install-bioconductor-packages).
 
-A published (but essentially similar) version of this workflow, including reviewer reports and comments
-is available at [F1000Research](http://f1000research.com/articles/4-1070).
-
-If you have questions about this workflow or any Bioconductor
-software, please post these to the
-[Bioconductor support site](https://support.bioconductor.org/).
-If the questions concern a specific package, you can tag the post with
-the name of the package, or for general questions about the workflow,
-tag the post with `rnaseqgene`. Note the
-[posting guide](http://www.bioconductor.org/help/support/posting-guide/)
-for crafting an optimal question for the support site.
+* A published version of this workflow, including reviewer reports and comments 
+  is available at [F1000Research](http://f1000research.com/articles/4-1070).
+* Another Bioconductor workflow covering **differential transcript usage**
+  (DTU) is the 
+  [rnaseqDTU](https://bioconductor.org/packages/rnaseqDTU) workflow,
+  with the published version likewise available at
+  [F1000Research](https://f1000research.com/articles/7-952/v3).
+* If you have questions about this workflow or any Bioconductor
+  software, please post these to the
+  [Bioconductor support site](https://support.bioconductor.org/).
+  If the questions concern a specific package, you can tag the post with
+  the name of the package, or for general questions about the workflow,
+  tag the post with `rnaseqgene`. Note the
+  [posting guide](http://www.bioconductor.org/help/support/posting-guide/)
+  for crafting an optimal question for the support site.
 
 ## Experimental data
 
@@ -809,7 +813,8 @@ filtering. For example, one can specify that at least 3 samples have a
 count of 10 or higher. One recommendation for the number of samples
 would be set to the smallest group size. Such a rule could be
 specified by creating a logic vector and subsetting the `dds` as
-above. Here is an example of another rule we could have used:
+above. Here is an example of another rule we could have used (here not
+used for filtering): 
 
 ```{r}
 # at least 3 samples with a count of 10 or higher
