@@ -1973,7 +1973,7 @@ be included in any emails to the
 with all code used in the analysis.
 
 ```{r}
-devtools::session_info()
+sessionInfo()
 ```
 
 # References
