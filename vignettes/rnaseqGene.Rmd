@@ -18,14 +18,14 @@ vignette: >
   %\VignetteIndexEntry{RNA-seq workflow at the gene level}
   %\VignetteEngine{knitr::rmarkdown}
 abstract: |
-  Here we walk through an end-to-end gene-level RNA-seq differential expression
-  workflow using Bioconductor packages.  We will start from the FASTQ files,
-  show how these were aligned to the reference genome, and prepare a count
-  matrix which tallies the number of RNA-seq reads/fragments within each gene
-  for each sample.  We will perform exploratory data analysis (EDA) for quality
-  assessment and to explore the relationship between samples, perform
-  differential gene expression analysis, and visually explore the results.
-
+  Here we walk through an end-to-end gene-level RNA-seq differential
+  expression workflow using Bioconductor packages.  We will start from
+  the FASTQ files, show how these were quantified to the reference
+  transcripts, and prepare gene-level count datasets for downstream
+  analysis. We will perform exploratory data analysis (EDA) for
+  quality assessment and to explore the relationship between samples,
+  perform differential gene expression analysis, and visually explore
+  the results.
 ---
 
 <!-- to compile this: rmarkdown::render("rnaseqGene.Rmd") -->
@@ -100,9 +100,9 @@ of the experiment see the
 and for raw data see the
 [GEO entry GSE52778](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778).
 
-<a id="count"></a>
+<a id="quant"></a>
 
-# Preparing count matrices
+# Preparing quantification input to DESeq2
 
 As input, the count-based statistical methods, such as
 `r Biocpkg("DESeq2")` [@Love2014Moderated],
@@ -113,35 +113,42 @@ As input, the count-based statistical methods, such as
 `r Biocpkg("baySeq")` [@Hardcastle2010BaySeq],
 expect input data as obtained, e.g., from RNA-seq or another
 high-throughput sequencing experiment, in the form of a matrix of
-integer values.  The value in the *i*-th row and the *j*-th column of
-the matrix tells how many reads (or fragments, for paired-end RNA-seq)
-have been assigned to gene *i* in sample *j*.  Analogously, for other
-types of assays, the rows of the matrix might correspond e.g., to
-binding regions (with ChIP-Seq), species of bacteria (with metagenomic
-datasets), or peptide sequences (with quantitative mass spectrometry).
+un-normalized counts.  The value in the *i*-th row and the *j*-th
+column of the matrix tells how many reads (or fragments, for
+paired-end RNA-seq) can be assigned to gene *i* in sample *j*.
+Analogously, for other types of assays, the rows of the matrix might
+correspond e.g., to binding regions (with ChIP-Seq), or peptide
+sequences (with quantitative mass spectrometry).
 
-The values in the matrix should be counts of sequencing
-reads/fragments. This is important for *DESeq2*'s statistical model to
-hold, as only counts allow assessing the measurement precision
-correctly. It is important to *never* provide counts that were
-pre-normalized for sequencing depth/library size, as the statistical
-model is most powerful when applied to un-normalized counts, and is
-designed to account for library size differences internally.
+The values in the matrix should be counts or estimated counts of
+sequencing reads/fragments. This is important for *DESeq2*'s
+statistical model to hold, as only counts allow assessing the
+measurement precision correctly. It is important to *never* provide
+counts that were pre-normalized for sequencing depth/library size, as
+the statistical model is most powerful when applied to un-normalized
+counts, and is designed to account for library size differences
+internally.
 
-## Recommended: transcript quantification and *tximport* / *tximeta*
+## Transcript quantification and *tximport* / *tximeta*
 
-Before we demonstrate how to align and then count RNA-seq fragments, 
-we mention that a newer and faster alternative pipeline is to use 
-transcript abundance quantification methods such as 
+A previous version of this workflow (including the published version)
+demonstrated how to align reads to the genome and then count the
+number of reads that are consistent with gene models. We now recommend
+a faster, alternative pipeline to genome alignment followed by
+counting reads in exons, and this is to import transcript-level
+quantification, aggregating to the gene-level with *tximport* or
+*tximeta*. Transcript quantification methods such as 
 [Salmon](https://combine-lab.github.io/salmon/) [@Patro2017Salmon],
 [kallisto](https://pachterlab.github.io/kallisto/) [@Bray2016Near], or 
-[RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM],
-to estimate abundances without aligning reads, followed by the
+[RSEM](http://deweylab.github.io/RSEM/) [@Li2011RSEM] perform mapping
+or alignment of reads to reference transcripts, outputting estimated
+counts per transcript as well as effective transcript lengths which
+summarize bias effects. After running one of these tools, the
 `r Biocpkg("tximport")` [@Soneson2015Differential] or
 `r Biocpkg("tximeta")` [@Love2019]
-packages for assembling estimated count and
-offset matrices for use with Bioconductor differential gene expression
-packages.
+packages can be used to assemble estimated count and offset matrices
+for use with Bioconductor differential gene expression packages, as
+will be demonstrated below.
 
 A tutorial on how to use the *Salmon* software for quantifying
 transcript abundance can be
@@ -151,19 +158,14 @@ We recommend using the `--gcBias`
 which estimates a correction factor for systematic biases
 commonly present in RNA-seq data [@Love2016Modeling; @Patro2017Salmon], 
 unless you are certain that your data do not contain such bias.
-Following the Salmon tutorial, you can use the steps in the 
-[tximport vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html),
-which will show how to build a *DESeqDataSet*. This is our current recommended
-pipeline for users, but below we still include steps on aligning reads to the
-genome and building count matrices from BAM files.
 
 The advantages of using the transcript abundance quantifiers in
 conjunction with *tximport*/*tximeta* to produce gene-level count matrices and
-normalizing offsets, are: this approach corrects for any potential
+normalizing offsets, are: (1) this approach corrects for any potential
 changes in gene length across samples (e.g. from differential isoform
-usage) [@Trapnell2013Differential]; some of these methods are
+usage) [@Trapnell2013Differential]; (2) some of these methods are
 substantially faster and require less memory and disk usage compared
-to alignment-based methods; and it is possible to avoid discarding
+to alignment-based methods; and (3) it is possible to avoid discarding
 those fragments that can align to multiple genes with homologous
 sequence [@Robert2015Errors].  Note that transcript abundance
 quantifiers skip the generation of large files which store read
@@ -171,9 +173,7 @@ alignments, instead producing smaller files which store estimated
 abundances, counts, and effective lengths per transcript.  For more
 details, see the manuscript describing this approach
 [@Soneson2015Differential], and the `r Biocpkg("tximport")` package
-vignette for software details. The entry point back into this workflow
-after using a transcript quantifier and *tximport* would be the
-[section on exploratory data analysis](#eda) below.
+vignette for software details.
 
 `r Biocpkg("tximeta")` [@Love2019]
 extends *tximport*, offering the same functionality, plus the
@@ -183,80 +183,107 @@ mouse). See the
 [tximeta vignette](https://bioconductor.org/packages/release/bioc/vignettes/tximeta/inst/doc/tximeta.htmlm)
 package vignette for more details. *tximeta* produces a
 *SummarizedExperiment* that can be loaded easily into *DESeq2* using
-the `DESeqDataSet` function, with an example in the *tximeta* package
-vignette.
-The entry point back into this workflow
-after using a transcript quantifier and *tximeta* would be the
-[section on exploratory data analysis](#eda) below.
+the `DESeqDataSet` function, which is demonstrated below.
 
-## Aligning reads to a reference genome
+## Quantifying with *Salmon*
 
-The computational analysis of an RNA-seq experiment begins from the FASTQ files that
-contain the nucleotide sequence of each read and a quality score at
-each position.  These reads must first be aligned to a reference
-genome or transcriptome, or the abundances and estimated counts per
-transcript can be estimated without alignment, as described above.
-In either case, it is important to know if the sequencing
-experiment was single-end or paired-end, as the alignment software
-will require the user to specify both FASTQ files for a paired-end
-experiment. The output of this alignment step is commonly stored in a
-file format called [SAM/BAM](http://samtools.github.io/hts-specs).
+As mentioned above, a short tutorial on how to use *Salmon* can be
+found [here](https://combine-lab.github.io/salmon/getting_started/),
+so instead we will provide the code that was used to quantify the
+files used in this workflow. *Salmon* can be conveniently run on a
+cluster using
+the [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow
+management system [@snakemake].
 
-A number of software programs exist to align reads to a reference
-genome, and we encourage you to check out some of the benchmarking papers that
-discuss the advantages and disadvantages of each software, which
-include accuracy, sensitivity in aligning reads over splice junctions, speed,
-memory required, usability, and many other features.
-Here, we used the
-[STAR read aligner](https://code.google.com/p/rna-star/) [@Dobin2013STAR]
-to align the reads for our current experiment to the Ensembl
-release 75 [@Flicek2014Ensembl] human reference genome. In the following code example, it is assumed that there is a file in the current
-directory called `files` with each line containing an identifier for
-each experiment, and we have all the FASTQ files in a subdirectory
-`fastq`. If you have downloaded the FASTQ files from the
-Sequence Read Archive, the identifiers would be SRA run IDs,
-e.g. `SRR1039520`. You should have two files for a paired-end
-experiment for each ID, `fastq/SRR1039520_1.fastq1` and
-`fastq/SRR1039520_2.fastq`, which give the first and second read for
-the paired-end fragments. If you have performed a single-end
-experiment, you would only have one file per ID.
-We have also created a subdirectory, `aligned`,
-where STAR will output its alignment files. 
+The following `Snakemake` file was used to quantify the eight samples that
+were downloaded from the SRA (the SRR identifier is the run
+identifier, and there was only one run per sample for these eight samples).
 
 ```
-for f in `cat files`; do STAR --genomeDir ../STAR/ENSEMBL.homo_sapiens.release-75 \
---readFilesIn fastq/$f\_1.fastq fastq/$f\_2.fastq \
---runThreadN 12 --outFileNamePrefix aligned/$f.; done
+DATASETS = ["SRR1039508",
+            "SRR1039509",
+            "SRR1039512",
+            "SRR1039513",
+            "SRR1039516",
+            "SRR1039517",
+            "SRR1039520",
+            "SRR1039521"]
+
+SALMON = "/path/to/salmon_0.14.1/bin/salmon"
+
+rule all:
+  input: expand("quants/{dataset}/quant.sf", dataset=DATASETS)
+
+rule salmon_quant:
+    input:
+        r1 = "fastq/{sample}_1.fastq.gz",
+        r2 = "fastq/{sample}_2.fastq.gz",
+        index = "/path/to/gencode.v29_salmon_0.14.1"
+    output:
+        "quants/{sample}/quant.sf"
+    params:
+        dir = "quants/{sample}"
+    shell:
+        "{SALMON} quant -i {input.index} -l A -p 6 --validateMappings \
+         --gcBias --numGibbsSamples 20 -o {params.dir} \
+		 -1 {input.r1} -2 {input.r2}"
 ```
 
-[SAMtools](http://www.htslib.org/doc/samtools.html) [@Li2009Sequence]
-was used to generate BAM files. The `-@` flag can be used to allocate
-additional threads.
+The last line is the key one which runs *Salmon*. It says to quantify
+using a specific *index*, with automatic library type detection, using
+6 threads, with the validate mappings setting (this is default in
+versions of *Salmon* $\ge$ 0.99), with GC bias correction, and writing
+out 20 Gibbs samples (this is optional). The last three arguments
+specify the output directory and the two paired read files.
+
+The above Snakemake file requires that an index be created at
+`/path/to/gencode.vVV_salmon_X.Y.Z`, where VV and X,Y,Z should help
+specify the release of the reference transcripts and of *Salmon*.
+For human and mouse reference transcripts, we recommend to use
+[GENCODE](https://gencodegenes.org) [@gencode].
+
+The *Salmon* index can be created easily with the following command:
 
 ```
-for f in `cat files`; do samtools view -bS aligned/$f.Aligned.out.sam \
--o aligned/$f.bam; done
+salmon index -t transcripts.fa -i name_of_index
 ```
 
-The BAM files for a number of sequencing runs can then be used to
-generate count matrices, as described in the following section.
+If the transcripts are downloaded from GENCODE, it is recommended to
+use the following command (which simply helps to strip the extra
+information from the transcript names):
 
-## Locating alignment files
+```
+salmon index --gencode -t transcripts.fa -i name_of_index
+```
 
-Besides the count matrix that we will use later, the
-`r Biocexptpkg("airway")` package also contains eight files 
-with a small subset of the total number of reads in the experiment.
-The reads were selected which aligned to a small region of
-chromosome 1. Here, for demonstration, we chose a subset of reads because the full alignment files are
-large (a few gigabytes each), and because it takes between 10-30
-minutes to count the fragments for each sample.
-We will use these files to demonstrate how a count matrix can be constructed
-from BAM files. Afterwards, we will load the full count matrix
-corresponding to all samples and all data, which is already provided
-in the same package, and will continue the analysis with that full
-matrix.
+The above Snakemake file can then be used to 
+[execute Snakemake](https://snakemake.readthedocs.io/en/stable/executable.html)
+in various ways, including submitting multiple jobs to a compute
+cluster or in the cloud. The above Snakemake file was executed on a
+cluster with SLURM scheduling, with the following line in a separate
+job submitted to the cluster:
 
-We load the data package with the example data:
+```
+snakemake -j 4 --latency-wait 30 --cluster "sbatch -N 1 -n 6"
+```
+
+## Reading in data with *tximeta*
+
+Later in the workflow, we will load an object that contains the
+quantification data at the gene-level for all eight samples. However,
+the `r Biocexptpkg("airway")` package also contains two quantification
+directories output by *Salmon*, in order to demonstrate reading this data
+into R/Bioconductor. In order to make the data package smaller, the
+`quant.sf` files in the quantification directories have been gzipped,
+so below where you see `quant.sf.gz`, you would probably use
+`quant.sf` on your own machine. 
+
+After we demonstrate importing with *tximeta*, we will load the full
+count matrix corresponding to all samples and all data, which is
+already provided in the same package, and will continue the analysis
+with that full data object.
+
+We first load the data package with the example data:
 
 ```{r loadairway}
 library("airway")
@@ -268,33 +295,56 @@ the full path to the `extdata` directory, where R packages store
 external data, that is part of the `r Biocexptpkg("airway")` package.
 
 ```{r dir}
-indir <- system.file("extdata", package="airway", mustWork=TRUE)
+dir <- system.file("extdata", package="airway", mustWork=TRUE)
 ```
 
-In this directory, we find the eight BAM files (and some other files):
+In this directory, we find a number of files, including eight BAM
+files that were used in the previous version of this workflow
+demonstrating alignment and counting. We will focus on the two
+directories that are in the `quants` directory, which contain the
+output from *Salmon* on two files.
 
 ```{r list.files}
-list.files(indir)
+list.files(dir)
+list.files(file.path(dir, "quants"))
 ```
 
 Typically, we have a table with detailed information for each of our
-samples that links samples to the associated FASTQ and BAM files.
+samples that links samples to the associated FASTQ and *Salmon* directories.
 For your own project, you might create such a comma-separated
 value (CSV) file using a text editor or spreadsheet software such as Excel.
 
 We load such a CSV file with *read.csv*:
 
-```{r sampleTable}
-csvfile <- file.path(indir, "sample_table.csv")
-sampleTable <- read.csv(csvfile, row.names = 1)
-sampleTable
+```{r sampleinfo}
+csvfile <- file.path(dir, "sample_table.csv")
+coldata <- read.csv(csvfile, row.names=1, stringsAsFactors=FALSE)
+coldata
 ```
 
-Once the reads have been aligned, there are a number of tools that
-can be used to count the number of reads/fragments that can be
-assigned to genomic features for each sample. These often take as
-input SAM/BAM alignment files and a file specifying the genomic
-features, e.g. a GFF3 or GTF file specifying the gene models.
+```{r}
+coldata <- coldata[1:2,]
+coldata$names <- coldata$Run
+coldata$files <- file.path(dir, "quants", coldata$names, "quant.sf.gz")
+file.exists(coldata$files)
+```
+
+```{r message=TRUE}
+library("tximeta")
+se <- tximeta(coldata)
+```
+
+```{r}
+head(rownames(se))
+```
+
+```{r message=TRUE}
+gse <- summarizeToGene(se)
+```
+
+```{r}
+head(rownames(gse))
+```
 
 ## *DESeq2* import functions
 
@@ -313,154 +363,6 @@ function            | package                                              | fra
 *htseq-count*       | [HTSeq](http://www-huber.embl.de/users/anders/HTSeq) | Python         | files                  | *DESeqDataSetFromHTSeq* 
 *featureCounts*     | `r Biocpkg("Rsubread")`                              | R/Bioconductor | matrix                 | *DESeqDataSetFromMatrix*
 *summarizeOverlaps* | `r Biocpkg("GenomicAlignments")`                     | R/Bioconductor | *SummarizedExperiment* | *DESeqDataSet*
-
-We now proceed using *summarizeOverlaps*.
-Using the `Run` column in the sample table, we construct the full
-paths to the files we want to perform the counting operation on:
-
-```{r filenames}
-filenames <- file.path(indir, paste0(sampleTable$Run, "_subset.bam"))
-file.exists(filenames)
-```
-
-We indicate in Bioconductor that these files are BAM files using the
-*BamFileList* function from the `r Biocpkg("Rsamtools")` package
-that provides an R interface to BAM files.
-Here we also specify details about how the BAM files should
-be treated, e.g., only process 2 million reads at a time. See
-`?BamFileList` for more information.
-
-```{r Rsamtools}
-library("Rsamtools")
-bamfiles <- BamFileList(filenames, yieldSize=2000000)
-```
-
-**Note:** make sure that the chromosome names of the genomic features
-in the annotation you use are consistent with the chromosome names of
-the reference used for read alignment. Otherwise, the scripts might
-fail to count any reads to features due to the mismatching names.
-For example, a common mistake is when the alignment files contain
-chromosome names in the style of `1` and the gene annotation in the
-style of `chr1`, or the other way around. See the *seqlevelsStyle*
-function in the `r Biocpkg("GenomeInfoDb")` package for solutions.
-We can check the chromosome names (here called "seqnames")
-in the alignment files like so:
-
-```{r seqinfo}
-seqinfo(bamfiles[1])
-```
-
-## Defining gene models
-
-Next, we need to read in the gene model that will be used for
-counting reads/fragments. We will read the gene model from an Ensembl
-[GTF file](http://www.ensembl.org/info/website/upload/gff.html) [@Flicek2014Ensembl],
-using *makeTxDbFromGFF* from the `r Biocpkg("GenomicFeatures")` package.
-GTF files can be downloaded from
-[Ensembl's FTP site](http://www.ensembl.org/info/data/ftp/) or other gene model repositories.
-A *TxDb* object is a database that can be used to
-generate a variety of range-based objects, such as exons, transcripts,
-and genes. We want to make a list of exons grouped by gene for
-counting read/fragments.
-
-There are other options for constructing a *TxDb*.
-For the *known genes* track from the UCSC Genome Browser [@Kent2002Human],
-one can use the pre-built Transcript DataBase:
-`r Biocannopkg("TxDb.Hsapiens.UCSC.hg19.knownGene")`.
-If the annotation file is accessible from
-`r Biocpkg("AnnotationHub")` (as is the case for the Ensembl genes),
-a pre-scanned GTF file can be imported using *makeTxDbFromGRanges*.
-
-Here we will demonstrate loading from a GTF file:
-
-```{r genfeat}
-library("GenomicFeatures")
-```
-
-We indicate that none of our sequences (chromosomes) are circular
-using a 0-length character vector.
-
-```{r txdb}
-gtffile <- file.path(indir,"Homo_sapiens.GRCh37.75_subset.gtf")
-txdb <- makeTxDbFromGFF(gtffile, format = "gtf", circ_seqs = character())
-txdb
-```
-
-The following line produces a *GRangesList* of all the exons grouped
-by gene [@Lawrence2013Software]. Each element of the list is a
-*GRanges* object of the exons for a gene.
-
-```{r}
-ebg <- exonsBy(txdb, by="gene")
-ebg
-```
-
-## Read counting step
-
-After these preparations, the actual counting is easy. The function
-*summarizeOverlaps* from the `r Biocpkg("GenomicAlignments")`
-package will do this. This produces a *SummarizedExperiment*
-object that contains a variety of information about
-the experiment, and will be described in more detail below.
-
-**Note:** If it is desired to perform counting using multiple cores, one can use
-the *register* and *MulticoreParam* or *SnowParam* functions from the
-`r Biocpkg("BiocParallel")` package before the counting call below.
-Expect that the `summarizeOverlaps` call will take at least 30 minutes
-per file for a human RNA-seq file with 30 million aligned reads. By sending
-the files to separate cores, one can speed up the entire counting process.
-
-```{r}
-library("GenomicAlignments")
-library("BiocParallel")
-```
-
-Here we specify to use one core, not multiple cores. We could have
-also skipped this line and the counting step would run in serial.
-
-```{r}
-register(SerialParam())
-```
-
-The following call creates the *SummarizedExperiment* object with counts:
-
-```{r}
-se <- summarizeOverlaps(features=ebg, reads=bamfiles,
-                        mode="Union",
-                        singleEnd=FALSE,
-                        ignore.strand=TRUE,
-                        fragments=TRUE )
-```
-
-We specify a number of arguments besides the `features` and the
-`reads`. The `mode` argument describes what kind of read overlaps will
-be counted. These modes are shown in Figure 1 of the
-*Counting reads with summarizeOverlaps* vignette for the
-`r Biocpkg("GenomicAlignments")` package.
-Note that fragments will be counted only once to each gene, even if
-they overlap multiple exons of a gene which may themselves be overlapping.
-Setting `singleEnd` to `FALSE`
-indicates that the experiment produced paired-end reads, and we want
-to count a pair of reads (a fragment) only once toward the count
-for a gene. 
-The `fragments` argument can be used when `singleEnd=FALSE` to specify if unpaired
-reads should be counted (yes if `fragments=TRUE`).
-
-In order to produce correct counts, it is important to know if the
-RNA-seq experiment was strand-specific or not. This experiment was not
-strand-specific so we set `ignore.strand` to `TRUE`.
-However, certain strand-specific protocols could have the reads
-align only to the opposite strand of the genes.
-The user must check if the experiment was strand-specific and if so,
-whether the reads should align to the forward or reverse strand of the genes.
-For various counting/quantifying tools, one specifies counting on the
-forward or reverse strand in different ways, although this task 
-is currently easiest with *htseq-count*, *featureCounts*, or the
-transcript abundance quantifiers mentioned previously.
-It is always a good idea to check the column sums of the count matrix
-(see below) to make sure these totals match the expected of the number
-of reads or fragments aligning to genes.  Additionally, one can
-visually check the read alignments using a genome visualization tool.
 
 ## SummarizedExperiment
 
@@ -505,44 +407,32 @@ the counts in the `assay` slot, the phenotypic data about the samples in
 genes in the `rowRanges` slot.
 
 ```{r}
-se
-dim(se)
-assayNames(se)
-head(assay(se), 3)
-colSums(assay(se))
+data(gse)
+gse
+dim(gse)
+assayNames(gse)
+head(assay(gse), 3)
+colSums(assay(gse))
 ```
 
 The `rowRanges`, when printed, only shows the first *GRanges*, and tells us
 there are 19 more elements:
 
 ```{r}
-rowRanges(se)
+rowRanges(gse)
 ```
 
-The `rowRanges` also contains metadata about the construction
-of the gene model in the `metadata` slot. Here we use a helpful R
-function, `str`, to display the metadata compactly:
+The `rowRanges` also contains metadata about the sequences
+in the `seqinfo` slot:
 
 ```{r}
-str(metadata(rowRanges(se)))
+seqinfo(rowRanges(gse))
 ```
 
 The `colData`:
 
 ```{r}
-colData(se)
-```
-
-The `colData` slot, so far empty, should contain all the metadata.
-Because we used a column of `sampleTable` to produce the `bamfiles`
-vector, we know the columns of `se` are in the same order as the
-rows of `sampleTable`. We can assign the `sampleTable` as the
-`colData` of the summarized experiment, by converting
-it into a *DataFrame* and using the assignment function:
-
-```{r}
-colData(se) <- DataFrame(sampleTable)
-colData(se)
+colData(gse)
 ```
 
 ## Branching point
@@ -612,8 +502,14 @@ each of the columns just using the `$` directly on the
 *SummarizedExperiment* or *DESeqDataSet*:
 
 ```{r secell}
-se$cell
-se$dex
+gse$donor
+gse$condition
+gse$cell <- gse$donor
+gse$dex <- gse$condition
+levels(gse$dex)
+# when renaming levels, the order must be preserved
+# "Untreated" => "untrt", "Dexamethasone" => "trt"
+levels(gse$dex) <- c("untrt", "trt")
 ```
 
 **Note:** it is prefered in R that the first level of a factor be the
@@ -622,15 +518,15 @@ reference level (e.g. control, or untreated samples), so we can
 
 ```{r sedex}
 library("magrittr")
-se$dex %<>% relevel("untrt")
-se$dex
+gse$dex %<>% relevel("untrt")
+gse$dex
 ```
 
 `%<>%` is the compound assignment pipe-operator from
 the `r CRANpkg("magrittr")` package, the above line of code is a concise way of saying
 
 ```{r explaincmpass, eval = FALSE}
-se$dex <- relevel(se$dex, "untrt")
+gse$dex <- relevel(gse$dex, "untrt")
 ```
 
 For running *DESeq2* models, you can use R's formula notation to
@@ -660,31 +556,14 @@ example of generating the *DESeqDataSet* from files produced by
 We now use R's *data* command to load a prepared
 *SummarizedExperiment* that was generated from the publicly available
 sequencing data files associated with @Himes2014RNASeq,
-described above.  The steps we used to produce this object were
-equivalent to those you worked through in the previous sections,
-except that we used all the reads and all the genes. For more details
-on the exact steps used to create this object, type
-`vignette("airway")` into your R session. 
+described above.
+
+We can quickly check the millions of fragments that could be mapped by
+*Salmon* to the genes (the second argument of *round* tells how many
+decimal points to keep).
 
 ```{r}
-data("airway")
-se <- airway
-```
-
-Again, we want to specify that `untrt` is the reference level for the
-dex variable:
-
-```{r}
-se$dex %<>% relevel("untrt")
-se$dex
-```
-
-We can quickly check the millions of fragments that uniquely aligned
-to the genes (the second argument of *round* tells how many decimal
-points to keep).
-
-```{r}
-round( colSums(assay(se)) / 1e6, 1 )
+round( colSums(assay(gse)) / 1e6, 1 )
 ```
 
 Supposing we have constructed a *SummarizedExperiment* using
@@ -694,7 +573,7 @@ the samples, i.e., a table with metadata on the count matrix's columns
 stored in the `colData` slot:
 
 ```{r}
-colData(se)
+colData(gse)
 ```
 
 Here we see that this object already contains an informative
@@ -719,7 +598,7 @@ library("DESeq2")
 ```
 
 ```{r}
-dds <- DESeqDataSet(se, design = ~ cell + dex)
+dds <- DESeqDataSet(gse, design = ~ cell + dex)
 ```
 
 ## Starting from count matrices
@@ -743,20 +622,22 @@ i.e., here, the fragment counts, we use the *assay* function. (The *head*
 function restricts the output to the first few lines.)
 
 ```{r}
-countdata <- assay(se)
+countdata <- round(assays(gse)[["counts"]])
 head(countdata, 3)
 ```
 
-In this count matrix, each row represents an Ensembl gene, each column
-a sequenced RNA library, and the values give the raw numbers of
-fragments that were uniquely assigned to the respective gene in each
-library. We also have information on each of the samples (the columns of the
-count matrix). If you've counted reads with some other software, it is
-very important to check that the columns of the count matrix correspond to the rows
-of the sample information table. 
+In this count matrix, each row represents a gene, each column a
+sequenced RNA library, and the values give the estimated counts of
+fragments that were probabilistically assigned to the respective gene
+in each library by *Salmon*. We also have information on each of the
+samples (the columns of the count matrix). If you've imported the
+count data in some other way, for example loading a pre-computed count
+matrix, it is **very important** to check manually that the columns of
+the count matrix correspond to the rows of the sample information
+table.
 
 ```{r}
-coldata <- colData(se)
+coldata <- colData(gse)
 ```
 
 We now have all the ingredients to prepare our data object in a form
@@ -770,8 +651,8 @@ sample information table, we use:
 
 ```{r}
 ddsMat <- DESeqDataSetFromMatrix(countData = countdata,
-                                  colData = coldata,
-                                  design = ~ cell + dex)
+                                 colData = coldata,
+                                 design = ~ cell + dex)
 ```
 
 We will continue with the object generated from the
@@ -1660,13 +1541,14 @@ first one that occurs in the database.
 To add the gene symbol and Entrez ID, we call *mapIds* twice.
 
 ```{r}
+ens.str <- substr(rownames(res), 1, 15)
 res$symbol <- mapIds(org.Hs.eg.db,
-                     keys=row.names(res),
+                     keys=ens.str,
                      column="SYMBOL",
                      keytype="ENSEMBL",
                      multiVals="first")
 res$entrez <- mapIds(org.Hs.eg.db,
-                     keys=row.names(res),
+                     keys=ens.str,
                      column="ENTREZID",
                      keytype="ENSEMBL",
                      multiVals="first")
@@ -1732,7 +1614,8 @@ resGR
 We need to add the symbol again for labeling the genes on the plot:
 
 ```{r}
-resGR$symbol <- mapIds(org.Hs.eg.db, names(resGR), "SYMBOL", "ENSEMBL")
+ens.str <- substr(names(resGR), 1, 15)
+resGR$symbol <- mapIds(org.Hs.eg.db, ens.str, "SYMBOL", "ENSEMBL")
 ```
 
 We will use the `r Biocpkg("Gviz")` package for plotting the GRanges

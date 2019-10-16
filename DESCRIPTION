@@ -1,6 +1,6 @@
 Package: rnaseqGene 
 Title: RNA-seq workflow: gene-level exploratory analysis and differential expression
-Version: 1.9.5
+Version: 1.9.6
 Date: 2019-10-01
 Authors@R: c(person(role=c("aut", "cre"), "Michael", "Love", email = "michaelisaiahlove@gmail.com"))
 Description: Here we walk through an end-to-end gene-level RNA-seq differential
@@ -14,17 +14,14 @@ Description: Here we walk through an end-to-end gene-level RNA-seq differential
 Depends: R (>= 3.3.0),
         BiocStyle,
         airway,
-        Rsamtools,
-        GenomicFeatures,
-        GenomicAlignments,
-        BiocParallel,
+        tximeta,
         magrittr,
         DESeq2,
-	apeglm,
+        apeglm,
         vsn,
         dplyr,
         ggplot2,
-	hexbin,
+        hexbin,
         pheatmap,
         RColorBrewer,
         PoiClaClu,
@@ -36,7 +33,7 @@ Depends: R (>= 3.3.0),
         ReportingTools,
         Gviz,
         sva,
-	RUVSeq,
+        RUVSeq,
         fission
 License: Artistic-2.0
 Encoding: UTF-8
