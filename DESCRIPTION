@@ -13,7 +13,7 @@ Description: Here we walk through an end-to-end gene-level RNA-seq differential
     expression analysis, and visually explore the results.
 Depends: R (>= 3.3.0),
         BiocStyle,
-        airway,
+        airway (>= 1.5.3),
         tximeta,
         magrittr,
         DESeq2,
