@@ -1,0 +1,13 @@
+citEntry(entry="article",
+         title = "RNA-Seq workflow: gene-level exploratory analysis and differential expression",
+         author = personList(as.person("Michael I. Love"),
+                             as.person("Simon Anders"),
+                             as.person("Vladislav Kim"),
+                             as.person("Wolfgang Huber")),
+         year = 2015,
+         journal = "F1000Research",
+         doi = "10.12688/f1000research.7035",
+         textVersion = 
+         paste("Love, M.I., Anders, S., Kim, V., Huber, W.", 
+               "RNA-Seq workflow: gene-level exploratory analysis and differential expression",
+               "F1000Research (2015)") )
