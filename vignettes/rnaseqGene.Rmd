@@ -887,6 +887,9 @@ df <- bind_rows(
   
 colnames(df)[1:2] <- c("x", "y")  
 
+lvls <- c("log2(x + 1)", "vst", "rlog")
+df$transformation <- factor(df$transformation, levels=lvls)
+
 ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
   coord_fixed() + facet_grid( . ~ transformation)  
 ```
