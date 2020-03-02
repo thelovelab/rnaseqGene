@@ -149,7 +149,7 @@ or alignment of reads to reference transcripts, outputting estimated
 counts per transcript as well as effective transcript lengths which
 summarize bias effects. After running one of these tools, the
 `r Biocpkg("tximport")` [@Soneson2015Differential] or
-`r Biocpkg("tximeta")` [@Love2019]
+`r Biocpkg("tximeta")` [@Love2020]
 packages can be used to assemble estimated count and offset matrices
 for use with Bioconductor differential gene expression packages, as
 will be demonstrated below.
@@ -179,7 +179,7 @@ details, see the manuscript describing this approach
 [@Soneson2015Differential], and the `r Biocpkg("tximport")` package
 vignette for software details.
 
-`r Biocpkg("tximeta")` [@Love2019]
+`r Biocpkg("tximeta")` [@Love2020]
 extends *tximport*, offering the same functionality, plus the
 additional benefit of automatic addition of annotation metadata for
 commonly used transcriptomes (GENCODE, Ensembl, RefSeq for human and
@@ -397,7 +397,7 @@ dedicated import functions.
 The following tools can be used generate or compile count data for use
 with *DESeq2*:
 *tximport* [@Soneson2015Differential],
-*tximeta* [@Love2019],
+*tximeta* [@Love2020],
 *htseq-count* [@Anders2015HTSeqa],
 *featureCounts* [@Liao2014FeatureCounts],
 *summarizeOverlaps* [@Lawrence2013Software].
