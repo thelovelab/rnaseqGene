@@ -1933,7 +1933,10 @@ res30[which.min(resTC$padj),]
 ```
 
 We can furthermore cluster significant genes by their profiles. We
-extract a matrix of the shrunken log2 fold changes using the *coef* function:
+extract a matrix of the log2 fold changes using the *coef*
+function. Note that these are the maximum likelihood estimates
+(MLE). For shrunken LFC, one must obtain them one coefficient at a
+time using `lfcShrink`.
 
 ```{r}
 betas <- coef(ddsTC)
