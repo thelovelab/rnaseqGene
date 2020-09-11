@@ -34,7 +34,7 @@ abstract: |
      # a list of all required packages:
      reqpkgs = sub(".*library\\(\"(.*?)\"\\).*","\\1",grep("library\\(",readLines("rnaseqGene.Rmd"),value=TRUE))
      find.package(reqpkgs) # are they installed?
-	 BiocManager::install(reqpkgs)
+     BiocManager::install(reqpkgs)
 -->
 
 
