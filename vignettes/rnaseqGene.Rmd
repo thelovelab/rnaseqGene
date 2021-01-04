@@ -256,6 +256,16 @@ The *Salmon* index can be created easily with the following command:
 salmon index -t transcripts.fa.gz -i name_of_index
 ```
 
+**Note:** *Salmon* can also make use of genomic *decoy sequences*
+during indexing, as described in @Srivastava2020, which has been
+demonstrated to improve quantification accuracy. For further details
+on how to make use of decoy sequences within the *Salmon* software
+please consult this note in the 
+[Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html#preparing-transcriptome-indices-mapping-based-mode).
+Here, we will continue mapping reads to the transcriptome without
+decoy sequences. During indexing, a note will appear that the *Salmon*
+index is being built without any decoy sequences.
+
 If the transcripts are downloaded from GENCODE, it is recommended to
 use something similar to the following command (which simply helps to
 strip the extra information from the transcript names):

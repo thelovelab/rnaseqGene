@@ -1,7 +1,7 @@
 Package: rnaseqGene 
 Title: RNA-seq workflow: gene-level exploratory analysis and differential expression
-Version: 1.15.0
-Date: 2019-10-16
+Version: 1.15.1
+Date: 2020-01-04
 Authors@R: c(person(role=c("aut", "cre"), "Michael", "Love", email = "michaelisaiahlove@gmail.com"))
 Description: Here we walk through an end-to-end gene-level RNA-seq differential
     expression workflow using Bioconductor packages.  We will start from
