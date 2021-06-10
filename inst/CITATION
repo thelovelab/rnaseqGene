@@ -4,10 +4,10 @@ citEntry(entry="article",
                              as.person("Simon Anders"),
                              as.person("Vladislav Kim"),
                              as.person("Wolfgang Huber")),
-         year = 2015,
+         year = 2016,
          journal = "F1000Research",
-         doi = "10.12688/f1000research.7035",
+         doi = "10.12688/f1000research.7035.2",
          textVersion = 
          paste("Love, M.I., Anders, S., Kim, V., Huber, W.", 
                "RNA-Seq workflow: gene-level exploratory analysis and differential expression",
-               "F1000Research (2015)") )
+               "F1000Research (2016)") )
