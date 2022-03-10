@@ -1940,7 +1940,7 @@ investigated using the `test` argument to *results*:
 ```{r}
 resultsNames(ddsTC)
 res30 <- results(ddsTC, name="strainmut.minute30", test="Wald")
-res30[which.min(resTC$padj),]
+res30[which.min(res30$padj),]
 ```
 
 We can furthermore cluster significant genes by their profiles. We
