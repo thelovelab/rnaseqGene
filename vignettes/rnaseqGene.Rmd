@@ -749,30 +749,23 @@ Our count matrix with our *DESeqDataSet* contains many rows with only
 zeros, and additionally many rows with only a few fragments total. In
 order to reduce the size of the object, and to increase the speed of
 our functions, we can remove the rows that have no or nearly no
-information about the amount of gene expression.  Here we apply the
-most minimal filtering rule: removing rows of the *DESeqDataSet* that
-have no counts, or only a single count across all samples. Additional
-weighting/filtering to improve power is applied at a later step in the
-workflow. 
+information about the amount of gene expression.
+Here we perform pre-filtering to keep only rows that have a count of
+at least 10 for a minimal number of samples. The count of 10 is a
+reasonable choice for bulk RNA-seq. A recommendation for the minimal
+number of samples is to specify the smallest group size, e.g. here
+there are 4 samples in each group. If there are not discrete groups,
+one can use the minimal number of samples where non-zero counts would
+be considered interesting.
+Additional weighting/filtering to improve power is applied at a later
+step in the workflow. 
 
 ```{r}
 nrow(dds)
-keep <- rowSums(counts(dds)) > 1
+smallestGroupSize <- 4
+keep <- rowSums(counts(dds) >= 10) >= smallestGroupSize
 dds <- dds[keep,]
 nrow(dds)
-```
-
-For some datasets, it may make sense to perform additional
-filtering. For example, one can specify that at least 3 samples have a
-count of 10 or higher. One recommendation for the number of samples
-would be set to the smallest group size. Such a rule could be
-specified by creating a logic vector and subsetting the `dds` as
-above. Here is an example of another rule we could have used (here not
-used for filtering): 
-
-```{r}
-# at least 3 samples with a count of 10 or higher
-keep <- rowSums(counts(dds) >= 10) >= 3
 ```
 
 ## The variance stabilizing transformation and the rlog
