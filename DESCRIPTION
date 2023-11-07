@@ -42,4 +42,4 @@ VignetteBuilder: knitr
 biocViews: Workflow, GeneExpressionWorkflow, ImmunoOncologyWorkflow
 Suggests: knitr, rmarkdown
 NeedsCompilation: no
-URL: https://github.com/thelovelove/rnaseqGene/
+URL: https://github.com/thelovelab/rnaseqGene/
