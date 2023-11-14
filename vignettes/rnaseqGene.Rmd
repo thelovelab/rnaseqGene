@@ -1644,23 +1644,9 @@ resOrderedDF <- as.data.frame(resOrdered)[1:100, ]
 write.csv(resOrderedDF, file = "results.csv")
 ```
 
-A more sophisticated way for exporting results the Bioconductor
-package `r Biocpkg("ReportingTools")` [@Huntley2013ReportingTools].
-*ReportingTools* will automatically generate dynamic HTML documents,
-including links to external databases using gene identifiers
-and boxplots summarizing the normalized counts across groups.
-See the *ReportingTools* vignettes for full details. The simplest
-version of creating a dynamic *ReportingTools* report is performed
-with the following code:
-
-```{r eval=FALSE}
-library("ReportingTools")
-htmlRep <- HTMLReport(shortName="report", title="My report",
-                      reportDirectory="./report")
-publish(resOrderedDF, htmlRep)
-url <- finish(htmlRep)
-browseURL(url)
-```
+More sophisticated ways for exporting results are described in the
+DESeq2 vignette, including links to other Bioconductor packages that
+facilitate visualization and report building.
 
 ## Plotting fold changes in genomic space
 
